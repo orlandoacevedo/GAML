@@ -68,68 +68,98 @@ gaml [command] -h
       
       Usage:
       
-      ``gaml [charge_gen_range, charge_gen_scheme, file_gen_gaussian, file_gen_gromacstop, GAML_main]``
+      ``gaml [charge_gen_range, charge_gen_scheme, file_gen_gaussian, file_gen_gromacstop, GAML, fss_analysis]``
 
 
       + ``gaml charge_gen_range``
            
-           -f, --filepath    input charge file path
-           -i, --atomnm      the number of atoms in system
-           -p, --percent     range from 0.0~1.0, default is 0.8
-           -t, --stepsize    default is 0.01
-           -nr, --nmround    decimal round number, default is 3
-           -o, --fname       output file name, default is ChargeGenRange
+           -f, --charge_path          input charge file path
+           -i, --atomnm               the total atom numbers of single system
+           -p, --percent              range from 0.0~1.0, default is 0.8
+           -t, --stepsize             default is 0.01
+           -nr, --nmround             decimal round number, default is 3
+           -o, --fname                output file name, default is ChargeGenRange
 
 
       + ``gaml charge_gen_scheme``
            
-           -f, --filepath          input charge file
-           -sl, --symmetry_list    a python type list contains atom's chemical equivalent
-           -c, --offset            the attemption numbers to generate charge
-           -tc, --total_charge     default is 1.0
-           -nr, --nmround          decimal round number, default is 2
-           -b, --in_keyowrd        the mark of start in the input file
-           -nm, --gennm            output file numbers, default is 5
-           -o, --fname             output file name, default is ChargeRandomGen
+           -f, --charge_path          input charge file
+           -sl, --symmetry_list       a python type list contains atom's chemical equivalent
+           -ol, --offset_list         two offsets to fit charge constrain
+           --offset_nm                the attemption numbers to generate charge
+           --cl, --counter_list       a group of two atom charges are zero
+           -tc, --total_charge        default is 1.0
+           -nz, --bool_nozero         no zero charges was generated, default is True
+           -nu, --bool_neutral        force the final calculated value scaled from 1 or not, default is True
+           -q, --bool_limit           uses to define the charge range, whether positive or negative, default is None
+           -nr, --nmround             decimal round number, default is 2
+           -b, --in_keyowrd           the mark of start in the input file
+           -nm, --gennm               output file numbers, default is 5
+           -lim, --threshold          the limit for the charge value generation
+           -o, --fname                output file name, default is ChargeRandomGen
 
 
       + ``gaml file_gen_gaussian``
            
-           -ftop, --topfile       the Gromacs topology file with some editions
-           -fpdb, --pdbfile       the Gromacs output pdb file
-           -sr, --select_range    Angstrom, default is 10
-           -bs, --basis_set       Gaussian definition, default is ``# HF/6-31G(d) Pop=CHelpG``
-           -cs, --charge_spin     Gaussian definition, default is ``0 1`` 
-           -nm, --gennm           output file numbers, default is 5
-           -o, --fname            output file name, default is GaussInput
+           -ftop, --toppath           the Gromacs topology file
+           -f, --pdbpath              the Gromacs output pdb file
+           -sr, --select_range        Angstrom, default is 10
+           -bs, --basis_set           Gaussian definition, default is ``# HF/6-31G(d) Pop=CHelpG``
+           -cs, --charge_spin         Gaussian definition, default is ``0 1`` 
+           -nm, --gennm               output file numbers, default is 5
+           -o, --fname                output file name, default is GaussInput
 
 
       + ``gaml file_gen_gromacstop``
 
-           -f, --chargefile       input charge file
-           -ftop, --topfile       the Gromacs topology file
-           -sl, --symmetry_list   a python type list contains atom's chemical equivalent
-           -res, --reschoose      the choose residue, default is ``ALL``,  
-           -b, --in_keyowrd       the mark of start in the input file
-           -e, --cut_keyowrd      the mark of end in the input file
-           -nm, --gennm           output file numbers, default is 5
-           -o, --fname            output file name, default is GenGromacsTopfile
-
-
-      + ``gaml GAML_main``
-
-           -f, --filepath             input total MD file
-           -fc, --chargerangefile     the defined charge range file
+           -f, --charge_path          input charge file
+           -ftop, --toppath           the Gromacs topology file
            -sl, --symmetry_list       a python type list contains atom's chemical equivalent
-           -d, --error_tolerance      default is 0.8
-           -ex, --charge_extend_by    the value to change the charge range bound, default is 0.3
-           -abs, --bool_abscomp       use absolute value or not 
-           -nr, --nmround             decimal round number, default is 2
-           -tc, --total_charge        default is 1.0
+           -res, --reschoose          the choose residue, default is ``ALL``,  
            -b, --in_keyowrd           the mark of start in the input file
            -e, --cut_keyowrd          the mark of end in the input file
            -nm, --gennm               output file numbers, default is 5
+           -o, --fname                output file name, default is GenGromacsTopfile
+
+
+      + ``gaml GAML``
+
+           -f, --file_path            input MD file
+           -fc, --charge_path         the defined charge range file
+           -sl, --symmetry_list       a python type list contains atom's chemical equivalent
+           -ol, --offset_list         two offsets to fit charge constrain
+           --offset_nm                the attemption numbers to generate charge
+           --cl, --counter_list       a group of two atom charges are zero
+           -d, --error_tolerance      default is 0.8
+           -nz, --bool_nozero         no zero charges was generated, default is True
+           -nu, --bool_neutral        force the final calculated value scaled from 1 or not, default is True
+           -q, --bool_limit           uses to define the charge range, whether positive or negative, default is None
+           -ex, --charge_extend_by    the value to change the charge range bound, default is 0.3
+           -ro, --ratio               ratio among Cross-over to Average to Mutation. The number of pair generations of 
+                                      normal charge range is always equal to number of modified charge range, default is 7:2:1
+           -lim, --threshold          the limit for the charge value generation
+           -abs, --bool_abscomp       use absolute value or not 
+           -nr, --nmround             decimal round number, default is 2
+           -tc, --total_charge        default is 1.0
+           -e, --cut_keyowrd          the mark of end in the input file
+           -nm, --gennm               output file numbers, default is 5
            -o, --fname                output file name, default is ML_chargeRandomGen
+
+
+	+ ``gaml fss_analysis``
+
+           -f, --file_path            input analyzing file                        
+           -t, --stepsize             default is 0.01
+           -d, --error_tolerance      default is 0.28
+           -abs, --bool_abscomp       default is False, use the absolute value or not
+           -p, --percent              range from 0.0 ~ 1.0, default is 0.95
+           -e, --cut_keyword          the mark of the end in the input file, default is MAE
+           -tl, --atomtype_list       correspondent atom types, note the character '#' is not supported
+           -pn, --pallette_nm         number of pallettes used to plot the graph, default is 50
+           -cm, --color_map           this is a key word compatible with Matplotlib modules, default is rainbow
+           -o, --fname                output file name, default is FSS_analysis
+
+
 
 ## Notes
 ----------

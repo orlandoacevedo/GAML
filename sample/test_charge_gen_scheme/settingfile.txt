@@ -1,0 +1,15 @@
+command       = charge_gen_scheme
+charge_path   = BPYR_ChargeGenRange_BF4_ESP.txt
+symmetry_list = [[1,9],[2,10],[3,7], [4,8], [13,14],[16,17,19,20],[22,23,24],[15,18],5,6,11,12,21] # default is None
+offset_list   = [1,11]              # default is None
+counter_list  = [[15,16], [22,21]]  # default is None
+gennm         =                     # default is 5
+nmround       = 3                   # default is 2
+total_charge  = 0.8                 # default is 1.0
+fname         =                     # default is ChargeRandomGen
+threshold     =                     # default is 1.0
+offset_nm     =                     # default is 5
+bool_neutral  =                     # default is True
+bool_nozero   =                     # default is True
+bool_limit    =                     # default is None
+in_keyword    = ATOM                # default is ATOM

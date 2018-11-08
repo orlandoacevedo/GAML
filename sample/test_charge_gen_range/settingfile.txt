@@ -1,0 +1,10 @@
+
+command   = charge_gen_range                   # command to execute, required
+charge_path = BPYR_BF4_charge_collection.txt     # input file path, required
+atomnm    = 24                                 # the processed atom number, required
+percent   = 0.8             # optional, default is 0.8
+stepsize  = 0.01            # optional, default is 0.01
+nmround   = 3               # optional, default is 3
+fname     = ChargeGenRange  # optional, default is ChargeGenRange
+
+

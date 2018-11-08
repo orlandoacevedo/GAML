@@ -1,0 +1,11 @@
+# This is a collection of all the generated GROMACS topfile names 
+# The topfile used is:
+#    bpyr_bf4_normal.top
+# The charge_file used is:
+#    BPYR_anion_Charge_Combine_1.txt
+
+# The symmetry_list used is:
+#    [ [1 9] [2 10] [3 7] [4 8] [13 14] [16 17 19 20] [22 23 24] [15 18] 5 6 11 12 21 ]
+
+GenGromacsTopfile_1.top
+GenGromacsTopfile_2.top
