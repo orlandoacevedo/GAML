@@ -1,0 +1,90 @@
+# This is a collection of default setting parameters
+
+# Note, for all the different command block, the parameter is
+# Case-Sensitive, for example, 'percent' is different with
+# 'Percent' or 'pErcent' or 'PErCENt' or etc.
+
+
+
+command      = charge_gen_range
+charge_path  = MUST
+atomnm       = MUST
+percent      = 0.8
+stepsize     = 0.01
+nmround      = 3
+fname        = ChargeGenRange
+
+
+command       = charge_gen_scheme
+charge_path   = MUST
+symmetry_list = None
+counter_list  = None
+offset_list   = None
+offset_nm     = 5
+gennm         = 5
+nmround       = 2
+total_charge  = 1.0
+in_keyword    = ATOM
+bool_neutral  = True
+bool_nozero   = True
+bool_limit    = None
+threshold     = 1.0
+fname         = ChargeRandomGen
+
+
+command      = file_gen_gaussian
+toppath      = MUST
+file_path    = MUST
+gennm        = 5
+select_range = 10
+basis_set    = # HF/6-31G(d) Pop=CHelpG     # the first '#' character is not treated as the comment
+charge_spin  = 0 1                      # two inputs, separated by white-space
+fname        = GaussInput
+
+
+command       = file_gen_gromacstop 
+toppath       = MUST
+charge_path   = MUST
+symmetry_list = None
+reschoose     = ALL
+gennm         = None
+in_keyword    = PAIR
+cut_keyword   = MAE
+fname         = GenGromacsTopfile
+
+
+command          = GAML
+charge_path      = None
+file_path        = None
+symmetry_list    = None
+offset_list      = None
+counter_list     = None
+offset_nm        = 5
+error_tolerance  = 0.12
+bool_abscomp     = True
+cut_keyword      = MAE
+charge_extend_by = 0.3
+gennm            = 20
+nmround          = 2
+total_charge     = 1.0
+ratio            = 7 : 2 : 1
+bool_limit       = 
+bool_neutral     = True
+bool_nozero      = True
+threshold        = 1.0
+fname            = ML_chargeRandomGen
+
+
+command          = fss_analysis
+file_path        = MUST
+atomtype_list    = None
+stepsize         = 0.01
+error_tolerance  = 0.28
+bool_abscomp     = True
+percent          = 0.95
+cut_keyword      = MAE
+pallette_nm      = 50
+color_map        = rainbow
+fname            = FSS_analysis
+
+

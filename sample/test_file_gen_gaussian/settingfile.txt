@@ -1,0 +1,9 @@
+command      = file_gen_gaussian
+toppath      = bpyr_bf4_scale08_gencom.top
+file_path    = BPYR_BF4_prod_10ns_trr.pdb
+gennm        = 2          # default is 5
+select_range = 10         # default is 10
+fname        = GaussInput
+basis_set    = # HF/6-31G(d) Pop=CHelpG  # the first '#' is not treated like comment
+charge_spin  = 0 1
+
