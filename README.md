@@ -24,7 +24,7 @@ git clone git://github.com/orlandoacevedo/GAML.git
 ## Installation
 -----
 ```
-pip install GAML (still under development, so please install from the source codes)
+pip install GAML (still under development, so please install from the source code)
 ```
 or
 ```
@@ -163,7 +163,7 @@ gaml [command] -h
 
 ## Notes
 ----------
-The most recent version of the software is GAML v.04 and is still heavily under development. Lennard-Jones optimization has not been implemented in this GitHub version.
+The most recent version of the software is GAML v0.4 and is still heavily under development. Lennard-Jones optimization has not been implemented in this GitHub version.
 A test for a 1-butylpyridinium-based ionic liquid can be found under the ``sample/`` directory
 Some features worth mentioning:
 + Customized selection range for Coulombic interactions with PBC removal
