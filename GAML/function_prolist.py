@@ -62,37 +62,46 @@
            For counter_list;
                self.reflist, [self.file_line_counter]"""
 
+        self.log = {'nice':True,}
+        
         if symmetry_list is None:
             pass
         elif not isinstance(symmetry_list,list):
-            print('Error: symmetry_list has to be a list')
-            exit()
+            self.log['nice'] = False
+            self.log['info'] = 'Error: symmetry_list has to be a 2D list'
+            return
         elif len(symmetry_list) == 0:
             symmetry_list = None
 
         if counter_list is None:
             pass
         elif not isinstance(counter_list,list):
-            print('Error: the counter_list has to be a list')
-            exit()
+            self.log['nice'] = False
+            self.log['info'] = 'Error: the counter_list has to be a 2D list'
+            return
         elif len(counter_list) == 0:
             counter_list = None
 
         if (symmetry_list is None) and (counter_list is None):
-            print('Error: at least one of symmetry_list and counter_list has to be provided')
-            exit()
+            self.log['nice'] = False
+            self.log['info'] = 'Error: at least one of symmetry_list and counter_list has to be provided'
+            return
         
         if symmetry_list is None:
             self.symmetry_list = []
             self.offset_list = []
             pro_reflist = self._f_pro_counter_list(counter_list)
+            if not self.log['nice']: return
         else:
             self.symmetry_list,self.offset_list = self._f_pro_symmetry_list(symmetry_list,offset_list)
+            if not self.log['nice']: return
             if counter_list is None:
                 pro_reflist = []
             else:
                 pro_counter_list = self._f_pro_counter_list(counter_list)
-                pro_reflist = self._f_pro_symmetry_counter_list(self.symmetry_list,pro_counter_list)                               
+                if not self.log['nice']: return
+                pro_reflist = self._f_pro_symmetry_counter_list(self.symmetry_list,pro_counter_list)
+                if not self.log['nice']: return
 
 
         self.reflist = []
@@ -113,10 +122,11 @@
             for i in self.offset_list:
                 for j in self.reflist:
                     if i in (j[0],j[2]):
-                        print('Error: the offset_list is in conflict with counter_list')
-                        exit()  
-        
+                        self.log['nice'] = False
+                        self.log['info'] = 'Error: the offset_list is in conflict with counter_list'
+                        return
             
+
 
     def _f_pro_symmetry_list(self,symmetry_list,offset_list=None):
         """For this method, the final processed parameters are, pro_symmetry_list, pro_offset,
@@ -136,12 +146,14 @@
                      isinstance(offset_list[1],int) and offset_list[0] != offset_list[1]:
                     self.file_line_offset += str(offset_list[0]) + '  ' + str(offset_list[1])
                 else:
-                    print('Error: offset_list has to be a 1D integer list')
-                    print('       the maximum number of its parameters is 2')
-                    exit()
+                    self.log['nice'] = False
+                    self.log['info'] = 'Error: offset_list has to be a 1D integer list\n' + \
+                                           '       the maximum number of its parameters is 2'
+                    return 0, 0
             else:
-                print('Error: offset_list has to be a list')
-                exit()
+                self.log['nice'] = False
+                self.log['info'] = 'Error: offset_list has to be a list'
+                return 0, 0
                 
         rmax = 0
         lth = 0
@@ -199,9 +211,11 @@
                                     self.bool_offset_1 = True
                                     self.offset_1_ndx = count
                                     self.offset_ndx_list.append(count)
-                    else:                       
-                        print('Error: symmetry_list has to be an integer list')
-                        exit()
+                    else:
+                        self.log['nice'] = False
+                        self.log['info'] = 'Error: symmetry_list has to be an integer list'
+                        return 0, 0
+
                 pro_symmetry_list.append(ls)
                 self.file_line_symmetry = self.file_line_symmetry[:-1] + '] '
                 if rmax == max(i):
@@ -209,15 +223,18 @@
                 rmax = max(rmax,max(i))
                 lth += len(set(i))
             else:
-                print('Error: symmetry_list has to be correctly defined')
-                exit()
+                self.log['nice'] = False
+                self.log['info'] = 'Error: symmetry_list has to be correctly defined'
+                return 0, 0
+            
             count += 1
         self.file_line_symmetry += ']'
 
 
         if bool_unique or (lth != rmax) or (rmax != len(set(pro_1D))):
-            print('Error: the indices in symmetry_list has to be unique and correctly defined')
-            exit()
+            self.log['nice'] = False
+            self.log['info'] = 'Error: the indices in symmetry_list has to be unique and correctly defined'
+            return 0, 0
         self.symmetry_length = rmax
         
         pro_offset = []
@@ -232,8 +249,9 @@
                     pro_offset.append(offset_list[0]-1)
                     pro_offset.append(offset_list[1]-1)
             except ValueError:
-                print('Error: the parameters in offset_list have to be correctly defined')
-                exit()
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameters in offset_list have to be correctly defined'
+                return 0, 0
 
         return pro_symmetry_list,pro_offset
                 
@@ -248,21 +266,22 @@
         bool_1D = False
         pro_counter_list = []
         self.file_line_counter = '[ '
-        error_info = 'Error: the counter_list has to be correctly defined'
         for i in counter_list:
             if isinstance(i,int):
                 bool_1D = True
                 self.file_line_counter += str(i) + ' '
             elif isinstance(i,list):
                 if bool_1D:
-                    print(error_info)
-                    exit()
+                    self.log['nice'] = False
+                    self.log['info'] = 'Error: the counter_list has to be correctly defined'
+                    return 0
 
                 line = '['
                 for j in i:
                     if not isinstance(j,int):
-                        print(error_info)
-                        exit()
+                        self.log['nice'] = False
+                        self.log['info'] = 'Error: the counter_list has to be correctly defined'
+                        return 0
                     line += str(j) + ' '
                 self.file_line_counter += line[:-1] + '] '
 
@@ -276,12 +295,14 @@
                     ndx[0] = ndx[0] - 1
                     ndx[2] = ndx[2] - 1
                 else:
-                    print(error_info)
-                    exit()
+                    self.log['nice'] = False
+                    self.log['info'] = 'Error: the counter_list has to be correctly defined'
+                    return 0
                 pro_counter_list.append(ndx)
             else:
-                print(error_info)
-                exit()
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the counter_list has to be correctly defined'
+                return 0
         self.file_line_counter += ']'
                 
         if bool_1D:
@@ -296,8 +317,9 @@
                 ndx[2] = ndx[2] - 1
                 pro_counter_list.append(ndx)
             else:
-                print(error_info)
-                exit()
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the counter_list has to be correctly defined'
+                return 0
 
         ls = []
         for i in pro_counter_list:
@@ -305,11 +327,11 @@
             ls.append(i[2])
 
         if 2*len(pro_counter_list) != len(set(ls)):
-            print('Warning: currently, the counter does not support multiple constrains')
-            exit()
+            self.log['nice'] = False
+            self.log['info'] = 'Warning: currently, the counter does not support multiple constrains'
+            return 0
 
         return pro_counter_list
-
 
 
 
@@ -367,9 +389,10 @@
         for ndx in counter_list:           
             bo,reflist = _f_refer_list(symmetry_list,ndx[0],ndx[2],ndx[1],ndx[3])
             if not bo:
-                print('Error: the symmetry_list and counter_list are not corresponded')
-                print('       OR, they are not correctly defined')
-                exit()
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the symmetry_list and counter_list are not corresponded\n' + \
+                                       '       OR, they are not correctly defined'
+                return 0
             #if max(reflist[1],reflist[3]) % min(reflist[1],reflist[3]) != 0:
             #   print('Error: the parameters in counter_list have to be divided evenly')
             #   exit()
@@ -377,4 +400,5 @@
             pro_ndx_list.append(reflist)
 
         return pro_ndx_list
+
 

@@ -20,12 +20,12 @@ def function_gen_range(rlist,percent=0.8):
         percent = float(percent)
         if percent <= 0 or percent > 1:
             raise ValueError
-    except:
+    except (ValueError, TypeError):
         print('Error: the input list has to be an 1D integer list')
         print('Error: the range of percent has to between 0 to 1\n')
         print('Error rlist: ',rlist)
         print('Error percent :',percent)
-        exit()
+        return 0,0
         
     lth = len(rlist)
     rmax = max(rlist)   

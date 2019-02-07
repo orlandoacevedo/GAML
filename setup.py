@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
-from setuptools import setup, find_packages
+from setuptools import setup
 import os
 import GAML
 
@@ -44,7 +44,8 @@ setup(
     maintainer_email='xxz385@miami.edu',
     url='https://github.com/orlandoacevedo/GAML',
     license='MIT',
-    packages=find_packages(exclude=['docs','sample','test*']),
+    packages=['GAML'],
+    package_data={'GAML':['shell/GAML-BASH-Interface.sh'],},
     entry_points={
         'console_scripts': [
             'gaml = GAML.main:cmd_line_runner',

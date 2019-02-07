@@ -4,41 +4,55 @@ import matplotlib.pyplot as plt
 
 class FSS_analysis(object):
 
-    def __init__(self,filepath,**kwargs):
-        
-        dump_value = file_size_check(filepath,fsize=200)
-        self.filepath = filepath
+    def __init__(self,**kwargs):
+        self.log = {'nice':True,}
 
-        if 'stepsize' in kwargs:
+        if 'file_path' in kwargs and kwargs['file_path'] is not None:
+            self.filepath = kwargs['file_path']
+            log = file_size_check(self.filepath,fsize=200)
+            if not log['nice']:
+                self.log['nice'] = False
+                self.log['info'] = log['info']
+                return
+        else:
+            self.log['nice'] = False
+            self.log['info'] = 'Error: no file inputs'
+            return
+        
+
+        if 'stepsize' in kwargs and kwargs['stepsize'] is not None:
             try:
                 self.stepsize = float(kwargs['stepsize'])
                 if self.stepsize <= 0:
                     raise ValueError
-            except:
-                print('Error: the parameter stepsize has to be a positive number')
-                exit()
+            except ValueError:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter stepsize has to be a positive number'
+                return
         else:
             self.stepsize = 0.01
             
 
-        if 'percent' in kwargs:
+        if 'percent' in kwargs and kwargs['percent'] is not None:
             try:
                 self.percent = float(kwargs['percent'])
                 if self.percent <= 0 or self.percent > 1:
                     raise ValueError
-            except:
-                print('Error: the parameter percent has to be a positive number within the range 0 to 1')
-                exit()
+            except ValueError:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter percent has to be a positive number within the range 0 to 1'
+                return
         else:
             self.percent = 0.95
             
 
-        if 'error_tolerance' in kwargs:
+        if 'error_tolerance' in kwargs and kwargs['error_tolerance'] is not None:
             try:
                 self.error_tolerance = float(kwargs['error_tolerance'])
-            except:
-                print('Error: the parameter error_tolerance has to be a number')
-                exit()
+            except ValueError:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter error_tolerance has to be a number'
+                return
         else:
             self.error_tolerance = 0.28
 
@@ -49,59 +63,65 @@ class FSS_analysis(object):
             self.bool_abscomp = True
             
 
-        if 'cut_keyword' in kwargs:
+        if 'cut_keyword' in kwargs and kwargs['cut_keyword'] is not None:
             self.cut_keyword = kwargs['cut_keyword']
         else:
             self.cut_keyword = 'MAE'
 
         
-        if 'pallette_nm' in kwargs:
+        if 'pallette_nm' in kwargs and kwargs['pallette_nm'] is not None:
             try:
                 self.pallette_nm = int(kwargs['pallette_nm'])
                 if self.pallette_nm <= 0:
                     raise ValueError
-            except:
-                print('Error: the parameter pallette_nm has to be a positive integer')
-                exit()
+            except ValueError:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter pallette_nm has to be a positive integer'
+                return
         else:
             self.pallette_nm = 50
             
 
-        if 'atomtype_list' in kwargs:
+        if 'atomtype_list' in kwargs and kwargs['atomtype_list'] is not None:
             if isinstance(kwargs['atomtype_list'],list):
                 if len(kwargs['atomtype_list']) == 0:
                     self.atomtype_list = None
                 else:
                     self.atomtype_list = kwargs['atomtype_list']
             else:
-                print('Error: the parameter atomtype_list has to be a list')
-                exit()
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter atomtype_list has to be a list'
+                return
         else:
             self.atomtype_list = None
             
 
-        if 'fname' in kwargs:
+        if 'fname' in kwargs and kwargs['fname'] is not None:
             self.fname = kwargs['fname']
         else:
             self.fname = 'FSS_analysis'
             
 
-        if 'color_map' in kwargs:
+        if 'color_map' in kwargs and kwargs['color_map'] is not None:
             self.color_map = kwargs['color_map']
         else:
             self.color_map = 'rainbow'
             
 
-        dump_value = self._function_ready()
+        self._function_ready()
+        if not self.log['nice']: return
 
         
 
     def function_fss(self):
         
-        chargehvap = function_file_input(self.filepath,bool_tail=True,cut_keyword=self.cut_keyword,
-                                         bool_force_cut_kw=True)
+        log,chargehvap = function_file_input(self.filepath,bool_tail=True,cut_keyword=self.cut_keyword,
+                                             bool_force_cut_kw=True)
+        if not log['nice']:
+            self.log['nice'] = False
+            self.log['info'] = log['info']
+            return [],[],[]
         
-
         # filter the list using the error_tolerance
         prolist = []
         i = 0
@@ -115,17 +135,20 @@ class FSS_analysis(object):
             i += 1
 
         if len(prolist) == 0:
-            print('Error: the error_tolerance is so small that getting rid of all the data')
-            print('Error: please increase this number and try again')
-            exit()
+            self.log['nice'] = False
+            self.log['info'] = 'Error: the error_tolerance is so small that getting rid of all the data\n' + \
+                               'Error: please increase this number and try again'
+            return [],[],[]
         elif len(prolist) < 50:
-            print('Error: the total number of chosen pairs should be no less than 50')
-            print('Error: please increase the error_tolerance and try again')
-            exit()
+            self.log['nice'] = False
+            self.log['info'] = 'Error: the total number of chosen pairs should be no less than 50\n' + \
+                               'Error: please increase the error_tolerance and try again'
+            return [],[],[]
         else:
             if self.atomtype_list is not None and len(prolist[0]) - 1 != len(self.atomtype_list):
-                print('Error: the input file and atomtype_list are not corresponded')
-                exit()
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the input file and atomtype_list are not corresponded'
+                return [],[],[]
                 
 
         valuelist = []
@@ -174,10 +197,11 @@ class FSS_analysis(object):
                 
                 
         if len(newlist) <= 50:
-            print('Error: the percent parameter is not big enough to maintain the data sets')
-            print('Error: please add more file contents or increase the error_tolerance')
-            print('Error: the total number of chosen pairs should be no less than 50')
-            exit()
+            self.log['nice'] = False
+            self.log['info'] = 'Error: the percent parameter is not big enough to maintain the data sets\n' + \
+                               'Error: please add more file contents or increase the error_tolerance\n' + \
+                               'Error: the total number of chosen pairs should be no less than 50'
+            return [],[],[]
 
 
         # prompt the information
@@ -186,9 +210,10 @@ class FSS_analysis(object):
         print('Do you want to continue? y/yes, else quit:    ',end='')
         get_input = input()
         if get_input.upper() != 'Y' and get_input.upper() != 'YES':
-            print('Warning: you have decided to quit ...')
-            print('Warning: nothing is generated\n')
-            exit()
+            self.log['nice'] = False
+            self.log['info'] = 'Warning: you have decided to quit ...\n' + \
+                               'Warning: nothing is generated\n'
+            return [],[],[]
         else:
             print('\nProcessing ...\n')
             
@@ -251,6 +276,7 @@ class FSS_analysis(object):
     def _function_ready(self):
              
         stderrlist,plotlist,self.valuerangelist = self.function_fss()
+        if not self.log['nice']: return
 
         if self.atomtype_list is None:
             self.atomtype_list = [ str(i+1) for i in range(len(plotlist)) ]
@@ -307,13 +333,11 @@ class FSS_analysis(object):
             self.profile.append(line)
             i += 1
 
-        return 1
-
 
 
     def file_print(self):
 
-        dump_value = self.figure_plot()
+        self.figure_plot()
         
         pfname = file_gen_new(self.fname,fextend='txt',foriginal=False)
         
@@ -376,5 +400,4 @@ class FSS_analysis(object):
         plt.tight_layout()
         fig.savefig(pfname)
 
-        return 1
 

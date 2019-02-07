@@ -1,5 +1,5 @@
 from GAML.functions import file_size_check, file_gen_new, function_file_input, function_roundoff_error, \
-                      function_pro_bool_limit
+                      function_pro_pn_limit
 from GAML.charge_gen_scheme import Charge_gen_scheme
 from GAML.function_prolist import Pro_list
 import random
@@ -7,19 +7,24 @@ import random
 
 class GAML_main(object):
 
-    def __init__(self,charge_path=None,file_path=None,symmetry_list=None,counter_list=None,offset_list=None,**kwargs):
+    def __init__(self,*args,**kwargs):
+        self.log = {'nice':True,}
         
-        if 'error_tolerance' in kwargs:
-            if kwargs['error_tolerance'] is None:
-                self.error_tolerance = 0.12
-            else:               
-                try:
-                    self.error_tolerance = float(kwargs['error_tolerance'])
-                    if self.error_tolerance < 0:
-                        raise ValueError
-                except:
-                    print('Error: the parameter error_tolerance has to be a positive number')
-                    exit()
+        charge_path = kwargs['charge_path'] if 'charge_path' in kwargs else None
+        file_path = kwargs['file_path'] if 'file_path' in kwargs else None
+        symmetry_list = kwargs['symmetry_list'] if 'symmetry_list' in kwargs else None
+        counter_list = kwargs['counter_list'] if 'counter_list' in kwargs else None
+        offset_list = kwargs['offset_list'] if 'offset_list' in kwargs else None
+        
+        if 'error_tolerance' in kwargs and kwargs['error_tolerance'] is not None:              
+            try:
+                self.error_tolerance = float(kwargs['error_tolerance'])
+                if self.error_tolerance < 0:
+                    raise ValueError
+            except ValueError:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter error_tolerance has to be a positive number'
+                return
         else:
             self.error_tolerance = 0.12
 
@@ -27,91 +32,76 @@ class GAML_main(object):
             print('Warning: the error_tolerance is greater than 1..')
             
 
-        if 'bool_abscomp' in kwargs:
-            if kwargs['bool_abscomp'] is None:
-                self.bool_abscomp = True
-            else:
-                self.bool_abscomp = False if (kwargs['bool_abscomp'] is False) else True
+        if 'bool_abscomp' in kwargs and kwargs['bool_abscomp'] is not None:
+            self.bool_abscomp = False if (kwargs['bool_abscomp'] is False) else True
         else:
             self.bool_abscomp = True
 
 
-        if 'cut_keyword' in kwargs:
-            if kwargs['cut_keyword'] is None:
-                self.cut_keyword = 'MAE'
-            else:
-                self.cut_keyword = kwargs['cut_keyword']
+        if 'cut_keyword' in kwargs and kwargs['cut_keyword'] is not None:
+            self.cut_keyword = kwargs['cut_keyword']
         else:
             self.cut_keyword = 'MAE'
             
 
-        if 'charge_extend_by' in kwargs:
-            if kwargs['charge_extend_by'] is None:
-                self.charge_extend_by = 0.3
-            else:
-                try:
-                    self.charge_extend_by = float(kwargs['charge_extend_by'])
-                except:
-                    print('Error: the parameter charge_extend_by has to be a number')
-                    exit()
+        if 'charge_extend_by' in kwargs and kwargs['charge_extend_by'] is not None:
+            try:
+                self.charge_extend_by = float(kwargs['charge_extend_by'])
+            except ValueError:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter charge_extend_by has to be a number'
+                return
         else:
             self.charge_extend_by = 0.3
 
        
-        if 'gennm' in kwargs:
-            if kwargs['gennm'] is None:
-                self.gennm = 20
-            else:
-                try:
-                    self.gennm = int(kwargs['gennm'])
-                    if self.gennm <= 0:
-                        raise ValueError
-                except:
-                    print('Error: the parameter gennm has to be a positive integer')
-                    exit()
+        if 'gennm' in kwargs and kwargs['gennm'] is not None:
+            try:
+                self.gennm = int(kwargs['gennm'])
+                if self.gennm <= 0:
+                    raise ValueError
+            except ValueError:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter gennm has to be a positive integer'
+                return
         else:
             self.gennm = 20
 
 
-        if 'ratio' in kwargs:
+        if 'ratio' in kwargs and kwargs['ratio'] is not None:
             self.ratio = kwargs['ratio']
-            if kwargs['ratio'] is None:
-                self.ratio = None
-                ratio_ml = 0.7
-                ratio_av = 0.2
-                ratio_mu = 0.1
-            else:
-                try:
-                    if kwargs['ratio'].count(':') == 2:
-                        stmp = kwargs['ratio'][:kwargs['ratio'].find(':')]
-                        ml = 0 if len(stmp.split()) == 0 else int(stmp)
-                        
-                        stmp = kwargs['ratio'][kwargs['ratio'].find(':')+1:kwargs['ratio'].rfind(':')]
-                        av = 0 if len(stmp.split()) == 0 else int(stmp)
-                        
-                        stmp = kwargs['ratio'][kwargs['ratio'].rfind(':')+1:]
-                        mu = 0 if len(stmp.split()) == 0 else int(stmp)
+            try:
+                if kwargs['ratio'].count(':') == 2:
+                    stmp = kwargs['ratio'][:kwargs['ratio'].find(':')]
+                    ml = 0 if len(stmp.split()) == 0 else int(stmp)
+                    
+                    stmp = kwargs['ratio'][kwargs['ratio'].find(':')+1:kwargs['ratio'].rfind(':')]
+                    av = 0 if len(stmp.split()) == 0 else int(stmp)
+                    
+                    stmp = kwargs['ratio'][kwargs['ratio'].rfind(':')+1:]
+                    mu = 0 if len(stmp.split()) == 0 else int(stmp)
 
-                    elif kwargs['ratio'].count(':') == 1:
-                        stmp = kwargs['ratio'][:kwargs['ratio'].find(':')]
-                        ml = 0 if len(stmp.split()) == 0 else int(stmp)
+                elif kwargs['ratio'].count(':') == 1:
+                    stmp = kwargs['ratio'][:kwargs['ratio'].find(':')]
+                    ml = 0 if len(stmp.split()) == 0 else int(stmp)
 
-                        stmp = kwargs['ratio'][kwargs['ratio'].find(':')+1:]
-                        av = 0 if len(stmp.split()) == 0 else int(stmp)
+                    stmp = kwargs['ratio'][kwargs['ratio'].find(':')+1:]
+                    av = 0 if len(stmp.split()) == 0 else int(stmp)
 
-                        mu = min(av,ml)
-                    else:
-                        raise TypeError
-                        
-                    if mu < 0 or av < 0 or ml < 0 or mu+av+ml == 0:
-                        raise TypeError
-                    ratio_mu = mu / (mu + av + ml)
-                    ratio_av = av / (mu + av + ml)
-                    ratio_ml = ml / (mu + av + ml)
-                except:
-                    print('Error: the parameter ratio is not correctly defined')
-                    print('Error:',kwargs['ratio'])
-                    exit()
+                    mu = min(av,ml)
+                else:
+                    raise ValueError
+                    
+                if mu < 0 or av < 0 or ml < 0 or mu+av+ml == 0:
+                    raise ValueError
+                ratio_mu = mu / (mu + av + ml)
+                ratio_av = av / (mu + av + ml)
+                ratio_ml = ml / (mu + av + ml)
+            except ValueError:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter ratio is not correctly defined\n' + \
+                                   'Error:' + kwargs['ratio']
+                return 
         else:
             self.ratio = None
             ratio_ml = 0.7
@@ -119,73 +109,67 @@ class GAML_main(object):
             ratio_mu = 0.1
 
 
-        if 'offset_nm' in kwargs:
-            if kwargs['offset_nm'] is None:
-                self.offset_nm = 5
-            else:
-                try:
-                    self.offset_nm = int(kwargs['offset_nm'])
-                    if self.offset_nm <= 0:
-                        raise ValueError
-                except:
-                    print('Error: the parameter offset_nm has to be a positive integer')
-                    exit()
+        if 'offset_nm' in kwargs and kwargs['offset_nm'] is not None:
+            try:
+                self.offset_nm = int(kwargs['offset_nm'])
+                if self.offset_nm <= 0:
+                    raise ValueError
+            except ValueError:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter offset_nm has to be a positive integer'
+                return
         else:
             self.offset_nm = 5
 
 
-        if 'nmround' in kwargs:
-            if kwargs['nmround'] is None:
-                self.nmround = 2
-            else:
-                try:
-                    self.nmround = int(kwargs['nmround'])
-                    if self.nmround <= 0:
-                        raise ValueError
-                except:
-                    print('Error: the parameter nmround has to be a positive integer')
-                    exit()
+        if 'nmround' in kwargs and kwargs['nmround'] is not None:
+            try:
+                self.nmround = int(kwargs['nmround'])
+                if self.nmround <= 0:
+                    raise ValueError
+            except ValueError:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter nmround has to be a positive integer'
+                return
         else:
             self.nmround = 2
             
 
-        if 'bool_limit' in kwargs:
-            if kwargs['bool_limit'] is None:
-                self.bool_limit = []
-            elif isinstance(kwargs['bool_limit'],list):
-                self.bool_limit = kwargs['bool_limit']
-            elif isinstance(kwargs['bool_limit'],str):
-                if len(kwargs['bool_limit']) == 0 or len(kwargs['bool_limit'].split()) == 0:
-                    self.bool_limit = []
+        if 'pn_limit' in kwargs and kwargs['pn_limit'] is not None:
+            if isinstance(kwargs['pn_limit'],list):
+                self.pn_limit = kwargs['pn_limit']
+            elif isinstance(kwargs['pn_limit'],str):
+                if len(kwargs['pn_limit']) == 0 or len(kwargs['pn_limit'].split()) == 0:
+                    self.pn_limit = []
                 else:
-                    self.file_line_limit = kwargs['bool_limit']
-                    self.bool_limit = function_pro_bool_limit(kwargs['bool_limit'],False)
+                    self.file_line_limit = kwargs['pn_limit']
+                    log, self.pn_limit = function_pro_pn_limit(kwargs['pn_limit'],False)
+                    if not log['nice']:
+                        self.log['nice'] = False
+                        self.log['info'] = log['info']
+                        return
             else:
-                print('Error: the parameter bool_limit is not correctly defined')
-                print('     : ',kwargs['bool_limit'])
-                exit()
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter pn_limit is not correctly defined\n' + \
+                                   '     : ' + str(kwargs['pn_limit'])
+                return
         else:
-            self.bool_limit = []
+            self.pn_limit = []
 
 
-        if 'total_charge' in kwargs:
-            if kwargs['total_charge'] is None:
-                self.total_charge = 1.0
-            else:
-                try:
-                    self.total_charge = float(kwargs['total_charge'])
-                except:
-                    print('Error: the parameter total_charge has to be a number')
-                    exit()
+        if 'total_charge' in kwargs and kwargs['total_charge'] is not None:
+            try:
+                self.total_charge = float(kwargs['total_charge'])
+            except ValueError:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter total_charge has to be a number'
+                return
         else:
             self.total_charge = 1.0
             
 
-        if 'bool_neutral' in kwargs:
-            if kwargs['bool_neutral'] is None:
-                self.bool_neutral = True
-            else:
-                self.bool_neutral = False if (kwargs['bool_neutral'] is False) else True
+        if 'bool_neutral' in kwargs and kwargs['bool_neutral'] is not None:
+            self.bool_neutral = False if (kwargs['bool_neutral'] is False) else True
         else:
             self.bool_neutral = True
 
@@ -194,46 +178,40 @@ class GAML_main(object):
             self.bool_neutral = False
 
         if self.bool_neutral and self.nmround < 2:
-            print('Error: When bool_neutral is set to True, the nmround should be not less than 2')
-            exit()
+            self.log['nice'] = False
+            self.log['info'] = 'Error: When bool_neutral is set to True, the nmround should be not less than 2'
+            return
 
 
-        if 'bool_nozero' in kwargs:
-            if kwargs['bool_nozero'] is None:
-                self.bool_nozero = True
-            else:
-                self.bool_nozero = False if (kwargs['bool_nozero'] is False) else True
+        if 'bool_nozero' in kwargs and kwargs['bool_nozero'] is not None:
+            self.bool_nozero = False if (kwargs['bool_nozero'] is False) else True
         else:
             self.bool_nozero = True
 
 
-        if 'threshold' in kwargs:
-            if kwargs['threshold'] is None:
-                self.threshold = 1.0
-            else:
-                try:
-                    self.threshold = float(kwargs['threshold'])
-                    if self.threshold < 0.3:
-                        raise ValueError
-                except:
-                    print('Error: the parameter threshold has to be greater than 0.3')
-                    exit()
+        if 'threshold' in kwargs and kwargs['threshold'] is not None:
+            try:
+                self.threshold = float(kwargs['threshold'])
+                if self.threshold < 0.3:
+                    raise ValueError
+            except ValueError:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter threshold has to be greater than 0.3'
+                return
         else:
             self.threshold = 1.0
 
 
-        if 'fname' in kwargs:
-            if kwargs['fname'] is None:
-                self.fname = 'ML_ChargeRandomGen'
-            else:
-                self.fname = kwargs['fname']
+        if 'fname' in kwargs and kwargs['fname'] is not None:
+            self.fname = kwargs['fname']
         else:
             self.fname = 'ML_ChargeRandomGen'
 
 
         if (file_path is None) and (charge_path is None):
-            print('Error: at least one of file_path and charge_path has to be provided')
-            exit()
+            self.log['nice'] = False
+            self.log['info'] = 'Error: at least one of file_path and charge_path has to be provided'
+            return
 
         # control all the pair-inputs
         self.totlist = []
@@ -242,25 +220,33 @@ class GAML_main(object):
             self.charge_path = None
             self.file_path = file_path
             dump_value = self._f_pro_filepath()
+            if not self.log['nice']: return
            
             _par = Pro_list(symmetry_list=symmetry_list,offset_list=offset_list,counter_list=counter_list)
+            if not _par.log['nice']:
+                self.log['nice'] = False
+                self.log['info'] = _par.log['info']
+                return
             
             self.symmetry_list = _par.symmetry_list
             self.file_line_symmetry = _par.file_line_symmetry
             self.file_line_offset = _par.file_line_offset
             self.reflist = _par.reflist
-            nmtmp = int(self.gennm * ratio_ml / (ratio_ml+ratio_av)+0.5)
+            t = ratio_ml + ratio_av + ratio_mu if ratio_ml + ratio_av == 0 else ratio_ml + ratio_av
+            nmtmp = int(self.gennm * ratio_ml / t + 0.5)
             if len(self.reflist) != 0:
                 self.file_line_counter = _par.file_line_counter
                 if len(self.mlinlist[0]) == 2:
                     if self.total_charge != 0:
-                        print('Error: if only two parameters are in perturbation and they are set to counter')
-                        print('Error: then the total_charge has to be equal to zero')
-                        exit()
+                        self.log['nice'] = False
+                        self.log['info'] = 'Error: if only two parameters are in perturbation and they are set to counter\n' + \
+                                           'Error: then the total_charge has to be equal to zero'
+                        return
                     #turn off the machine learning
                     nmtmp = 0
 
             dump_value = self._f_pro_symmetry_list()
+            if not self.log['nice']: return
             self.galist_ml = self._f_charge_gen_ml(nmtmp)
             
             natmp = 0 if self.gennm - nmtmp <= 0 else self.gennm - nmtmp
@@ -269,23 +255,30 @@ class GAML_main(object):
         else:    
             self.charge_path = charge_path
             self.charge_nor_list,self.charge_new_list = self._f_pro_charge_path(charge_path,self.charge_extend_by)
+            if not self.log['nice']: return
             
             if file_path is None:
                 self.file_path = None
             else:
                 self.file_path = file_path
                 dump_value = self._f_pro_filepath()
+                if not self.log['nice']: return
                 if len(self.charge_nor_list) < len(self.mlinlist[0]):
-                    print('Error: the charge file and the input file are not corresponded')
-                    exit()
+                    self.log['nice'] = False
+                    self.log['info'] = 'Error: the charge file and the input file are not corresponded'
+                    return
 
             gennm_nor = self.gennm // 2 if (file_path is None) else int(self.gennm * ratio_mu + 0.5)
             gennm_nor = 0 if gennm_nor == 0 else gennm_nor
-            _par = Charge_gen_scheme(self.charge_nor_list,symmetry_list=symmetry_list,offset_list=offset_list,
+            _par = Charge_gen_scheme(charge_path=self.charge_nor_list,symmetry_list=symmetry_list,offset_list=offset_list,
                                      counter_list=counter_list,nmround=self.nmround,gennm=gennm_nor,
                                      threshold=self.threshold,total_charge=self.total_charge,
                                      bool_neutral=self.bool_neutral,offset_nm=self.offset_nm,
-                                     bool_nozero=self.bool_nozero,bool_limit=self.bool_limit)
+                                     bool_nozero=self.bool_nozero,pn_limit=self.pn_limit)
+            if not _par.log['nice']:
+                self.log['nice'] = False
+                self.log['info'] = _par.log['info']
+                return
             self.schemelist_nor = []
             for i in _par.chargepair:
                 if not self._f_remove_repeats(self.totlist,i):
@@ -296,11 +289,15 @@ class GAML_main(object):
             
             gennm_new = self.gennm - len(self.schemelist_nor) if (file_path is None) else gennm_nor
             gennm_new = 0 if gennm_new == 0 else gennm_new
-            _par = Charge_gen_scheme(self.charge_new_list,symmetry_list=symmetry_list,offset_list=offset_list,
+            _par = Charge_gen_scheme(charge_path=self.charge_new_list,symmetry_list=symmetry_list,offset_list=offset_list,
                                      counter_list=counter_list,nmround=self.nmround,gennm=gennm_new,
                                      threshold=self.threshold,total_charge=self.total_charge,
                                      bool_neutral=self.bool_neutral,offset_nm=self.offset_nm,
-                                     bool_nozero=self.bool_nozero,bool_limit=self.bool_limit)
+                                     bool_nozero=self.bool_nozero,pn_limit=self.pn_limit)
+            if not _par.log['nice']:
+                self.log['nice'] = False
+                self.log['info'] = _par.log['info']
+                return
             self.schemelist_new = []
             for i in _par.chargepair:
                 if not self._f_remove_repeats(self.totlist,i):
@@ -321,11 +318,13 @@ class GAML_main(object):
             if file_path is not None:
                 
                 dump_value = self._f_pro_symmetry_list()
+                if not self.log['nice']: return
 
                 if len(self.reflist) != 0 and len(self.mlinlist[0]) == 2 and self.total_charge != 0:
-                    print('Error: if only two parameters are in perturbation and they are set to counter')
-                    print('Error: then the total_charge has to be equal to zero')
-                    exit()
+                    self.log['nice'] = False
+                    self.log['info'] = 'Error: if only two parameters are in perturbation and they are set to counter\n' + \
+                                       'Error: then the total_charge has to be equal to zero'
+                    return
                 
                 nmtmp = int(self.gennm * ratio_ml + 0.5)
                 self.galist_ml = self._f_charge_gen_ml(nmtmp)
@@ -361,9 +360,10 @@ class GAML_main(object):
         
         def bound_mutation(prolist,extend_by,des='string'):
             if len(prolist) == 0:
-                print('Error: it seems the charge_path is a {:s}, however, nothing was input'.format(des))
-                print('     : Or it is not correctly defined')
-                exit()
+                self.log['nice'] = False
+                self.log['info'] = 'Error: it seems the charge_path is a {:s}, however, nothing was input\n'.format(des) + \
+                                   '     : Or it is not correctly defined'
+                return 0
                 
             newlist = []
             for i in prolist:
@@ -393,9 +393,10 @@ class GAML_main(object):
                    and (isinstance(i[1],int) or isinstance(i[1],float)):
                     pass
                 else:
-                    print('Error: the charge_path has to be a 2D nested number list')
-                    print('       and its each sublist only contains two indices')
-                    exit()
+                    self.log['nice'] = False
+                    self.log['info'] = 'Error: the charge_path has to be a 2D nested number list\n' + \
+                                       '       and its each sublist only contains two indices'
+                    return 0,0
 
             # change the list name
             charge_nor_list = charge_path
@@ -404,7 +405,11 @@ class GAML_main(object):
                 
         elif isinstance(charge_path,str):
             
-            dump_value = file_size_check(charge_path,fsize=50)
+            log = file_size_check(charge_path,fsize=50)
+            if not log['nice']:
+                self.log['nice'] = False
+                self.log['info'] = log['info']
+                return 0,0
             
             charge_nor_list = []
             with open(charge_path,mode='rt') as f:
@@ -422,8 +427,9 @@ class GAML_main(object):
             charge_new_list = bound_mutation(charge_nor_list,charge_extend_by,des='file\'s path')
             
         else:
-            print('Error: the charge file has to be correctly defined')
-            exit()
+            self.log['nice'] = False
+            self.log['info'] = 'Error: the charge file has to be correctly defined'
+            return 0,0
                        
         return charge_nor_list,charge_new_list
 
@@ -431,9 +437,17 @@ class GAML_main(object):
 
     def _f_pro_filepath(self):
         
-        dump_value = file_size_check(self.file_path,fsize=500)
-        profile = function_file_input(self.file_path,dtype=float,bool_tail=True,cut_keyword=self.cut_keyword,
-                                      bool_force_cut_kw=True)
+        log = file_size_check(self.file_path,fsize=500)
+        if not log['nice']:
+            self.log['nice'] = False
+            self.log['info'] = log['info']
+            return 0
+        log, profile = function_file_input(self.file_path,dtype=float,bool_tail=True,cut_keyword=self.cut_keyword,
+                                           bool_force_cut_kw=True)
+        if not log['nice']:
+            self.log['nice'] = False
+            self.log['info'] = log['info']
+            return 0
 
         
         self.mlinlist = []
@@ -455,12 +469,15 @@ class GAML_main(object):
 
         getinput = input()
         if getinput.upper() != 'Y' and getinput.upper() != 'YES':
+            self.log['nice'] = False
+            self.log['info'] = ''
             print('Warning: you have decided to quit the ML charge generateion')
-            exit()
+            return 0
 
         if len(self.mlinlist) < 5:
-            print('Error: for machine learning, the number of entry to be trained has to be no less than 5')
-            exit()
+            self.log['nice'] = False
+            self.log['info'] = 'Error: for machine learning, the number of entry to be trained has to be no less than 5'
+            return 0
 
         return 1
 
@@ -559,9 +576,9 @@ class GAML_main(object):
                                 averlist[i[2]] = t
                                 break
                     
-                    # apply the bool_limit, take care the python index starts at zero
+                    # apply the pn_limit, take care the python index starts at zero
                     bool_tmp_limit = False
-                    for i in self.bool_limit:
+                    for i in self.pn_limit:
                         v = averlist[i[0]-1]
                         if i[1] == 'p' and v < 0:
                             bool_tmp_limit = True
@@ -587,8 +604,9 @@ class GAML_main(object):
         self.lglist = []
         if len(self.symmetry_list) != 0:
             if len(self.symmetry_list) != len(self.mlinlist[0]):
-                print('Error: the symmetry_list and the input trainning file are not corresponded')
-                exit()
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the symmetry_list and the input trainning file are not corresponded'
+                return 0 
                 
             for i in self.symmetry_list:
                 if isinstance(i,int):
@@ -654,9 +672,9 @@ class GAML_main(object):
                                             self.nmround,self.threshold)
 
                 if bo:
-                    # apply the bool_limit, take care the python index starts at zero
+                    # apply the pn_limit, take care the python index starts at zero
                     bool_tmp_limit = False
-                    for i in self.bool_limit:
+                    for i in self.pn_limit:
                         v = lrs[i[0]-1]
                         if i[1] == 'p' and v < 0:
                             bool_tmp_limit = True
@@ -679,9 +697,9 @@ class GAML_main(object):
                                             self.nmround,self.threshold)
                 
                 if bo:
-                    # apply the bool_limit, take care the python index starts at zero
+                    # apply the pn_limit, take care the python index starts at zero
                     bool_tmp_limit = False
-                    for i in self.bool_limit:
+                    for i in self.pn_limit:
                         v = lrt[i[0]-1]
                         if i[1] == 'p' and v < 0:
                             bool_tmp_limit = True
@@ -735,8 +753,8 @@ class GAML_main(object):
                 f.write('# The counter_list used is:\n')
                 f.write('#    {:}\n\n'.format(self.file_line_counter))
 
-            if len(self.bool_limit) != 0:
-                f.write('# The bool_limit used is:\n')
+            if len(self.pn_limit) != 0:
+                f.write('# The pn_limit used is:\n')
                 f.write('#    {:}\n\n'.format(self.file_line_limit))
 
             if self.ratio is not None:
@@ -814,5 +832,5 @@ class GAML_main(object):
                             f.write('{:>7}'.format(j))
                         f.write('\n')
 
-        return 1
 
+    
