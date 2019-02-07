@@ -2,20 +2,20 @@ def file_size_check(path,fsize=10):
     """This function is used to check the file existence and size,
        the unit of size is in megabety"""
     
-    import os      
+    import os
+    log = {'nice':True,}
     try:
         sizetmp = os.stat(path).st_size
         if sizetmp/1024/1024 > fsize:
-            print('Error: the file size is far larger than %f MB' % fsize)
-            print('Error path: ',path)
-            exit()
-          
+            log['nice'] = False
+            log['info'] = 'Error: the file size is far larger than %f MB' % fsize,
+            
     except IOError:
-        print('Error : cannot open the file!')
-        print('Error path: ',path)
-        exit()
+        log['nice'] = False
+        log['info'] = 'Error : cannot open the file!\n' + \
+                      'Error : ' + path
         
-    return 1
+    return log
 
 
 
@@ -61,6 +61,7 @@ def function_file_input(filepath,comment_char='#',dtype=float,bool_tail=True,in_
     """get the input file, check if forcing the cut_kw or not"""
     
     profile = []
+    log = {'nice':True,}
     with open(filepath,mode='rt') as f:
         while True:
             line = f.readline()
@@ -73,8 +74,10 @@ def function_file_input(filepath,comment_char='#',dtype=float,bool_tail=True,in_
                 elif len(lp) >= 2 and lp[0] == in_keyword:
                     
                     if bool_force_cut_kw and line.find(cut_keyword) == -1:
-                        print('Error: no cut_keyword was found')
-                        exit()
+                        log['nice'] = False
+                        log['info'] = 'Error: no cut_keyword was found'
+                        log['info'] = 'Error line: ' + line
+                        break
                             
                     ls = []
                     for tmp in lp[1:]:
@@ -87,12 +90,12 @@ def function_file_input(filepath,comment_char='#',dtype=float,bool_tail=True,in_
                     profile.append(ls)
                     
                 else:
-                    print('Error: The input file format is not correctly defined')
-                    print('Error line:')
-                    print(line)
-                    exit()
+                    log['nice'] = False
+                    log['info'] = 'Error: The input file format is not correctly defined'
+                    log['info'] = 'Error line: ' + line
+                    break
                 
-    return profile
+    return log,profile
 
 
 
@@ -146,8 +149,8 @@ def function_roundoff_error(v,vnm,s,snm,n=10,nmround=2):
 
 
 
-def function_pro_bool_limit(string,bool_repeats=True):
-    """This method is used to process the parameter bool_limit, the raw input is
+def function_pro_pn_limit(string,bool_repeats=True):
+    """This method is used to process the parameter pn_limit, the raw input is
        a string, its correct formats are;
 
        1) '1,p, 2, p, 3:P, 4 - Positive, 5 :N, 6- negative, 7,  8, 9   n'
@@ -168,130 +171,101 @@ def function_pro_bool_limit(string,bool_repeats=True):
        or not for the same entry.
 
        Note:
-       1) the return value is not sequence based,
-       2) if any errors happen, the full process is terminated."""
+           the return value is not sequence based"""
     
-    error_info = 'Error: the parameter bool_limit is not correctly defined'
+    log = {'info':'Error: the parameter pn_limit is not correctly defined',
+           'nice':True, }
         
-    ltmp = string.lower().split()
+    line = string.replace(',',' ').replace(':',' ').replace('-',' ').lower()
+    line = line.replace('ositive',' ').replace('egative',' ')
 
-    line = ''
-    for i in ltmp:
-        line += i + ','
-    sline = ''
-    for i in line:
-        sline = sline + '-' if i == ':' else sline + i
-        
-    ltmp = sline.split(',')
-
-    line = ''
-    for i in ltmp:   
-        if i.find('-') != -1:
-            if len(i) == 1 or i[0] == '-':
-                if len(line) > 1 and line[-1] == ',':
-                    line = line[:-1] + i
-                else:          
-                    line += i
-            else:
-                line += i
-                
-            if len(i) > 1 and i[-1] != '-':
-                line += ','
-        elif len(i) != 0:
-            line += i + ','
-            
-    ltmp = line.split(',')
-
-    nvlist = []
-    reflist = []
-    count = 0        
-    for i in ltmp:
-        try:
-            t = i.split('-')
-            bool_ndx = False
-            if len(t) == 2:
-                # check the left-side and the right-side
-                n = int(t[0])
-                if t[1] not in ['p','positive','n','negative']:
-                    raise ValueError
-
-                value = 'p' if ( t[1] in ['p','positive'] ) else 'n'                
-                nvlist.append([n,value])
-
-                if count != 0:
-                    if ltmp[count-1].find('-') == -1 and \
-                       ltmp[count-1].find('p') == -1 and \
-                       ltmp[count-1].find('positive') == -1 and \
-                       ltmp[count-1].find('n') == -1 and \
-                       ltmp[count-1].find('negative') == -1:
-                        bool_ndx = True
-                        raise ValueError
-                
-            elif i.find('p') != -1 or i.find('positive') != -1:
-                t = i.split('p')
-                if len(t[0]) != 0:
-                    n = int(t[0])
-                    reflist.append(n)
-                if len(t[1]) != 0 and t[1] != 'ositive':
-                    raise ValueError
-                reflist.append('p')
-                
-            elif i.find('n') != -1 or i.find('negative') != -1:
-                t = i.split('n')
-                if len(t[0]) != 0:
-                    n = int(t[0])
-                    reflist.append(n)
-                if len(t[1]) != 0 and t[1] != 'egative':
-                    raise ValueError
-                reflist.append('n')
-                
-            elif len(i) != 0:
-                reflist.append(int(i))
-            count += 1
-        except:
-            print(error_info)
-            print('Input string: ',string)
-            if bool_ndx:
-                print('Error entry: ',ltmp[count-1],i)
-            else:
-                print('Error entry: ',i)
-            exit()
-
-    if len(reflist) == 0:
-        return nvlist
-
+    subline = line.replace(' ','')
     try:
-        if reflist[-1] != 'p' and reflist[-1] != 'n':
-            i = reflist[-1]
+        dump_value = int(subline.replace('p','').replace('n',''))
+        # The first character in subline can't be 'n' or 'p',
+        # 'pn' or 'np' should not exist, and the last char has
+        # to be either 'n' or 'p'
+        if subline[0] == 'p' or subline[0] == 'n' or \
+           'pn' in subline or 'np' in subline or \
+           (subline[-1] != 'n' and subline[-1] != 'p'):
             raise ValueError
-    except:
-        print(error_info)
-        print('Input string: ',string)
-        print('Error entry: ',i)
-        exit()
+    except ValueError:
+        log['nice'] = False
+        return log, []
 
-    
+    nl = pl = ''
+    i = 0
     j = 0
-    while j < len(reflist):
-        ls = []
-        count = 0
-        for n in reflist[j:]:
-            count += 1
-            if n == 'n' or n == 'p':
-                break
-            ls.append(n)
-            
-        for k in ls:
-            nvlist.append([k,n])
-        j += count
+    while i < len(line):
+        if line[i] == 'p':
+            if j < i:
+                pl += line[j:i]
+            j = i + 1
+        elif line[i] == 'n':
+            if j < i:
+                nl += line[j:i]
+            j = i + 1
+        i += 1
+        
+    nvlist = []
+    for i in nl.split():
+        nvlist.append([int(i),'n'])
+    for i in pl.split():
+        nvlist.append([int(i),'p']) 
 
-    if not bool_repeats:
-        t = [i[0] for i in nvlist]
-        if len(t) != len(set(t)):
-            print(error_info)
-            print(string)
-            print('Error: some entries are double defined!')
-            exit()
+    return log, nvlist
 
-    return nvlist
 
+
+def assertion(dtype=None,data=None,small=None,big=None,
+              smallclose=False,bigclose=False):
+    """
+    This fuction is used for input parameter's validation
+    test, which is fulfilled by the 'try-except' method, but
+    with more powerful abilities.
+    
+    For example, for the string '8', we want it to transfer
+    to be an int type with a range not less than number 8,
+    and no bigger that 18, thus we can set,
+    
+    assertion(dtype=int,data='8',small=8,smallclose=True,
+              big=18,bigclose=True)
+
+    then any int value in range, 8 <= x <= 18, is valid.
+
+
+    Return Value:
+    a tuple, (assertResult, data)
+    """
+
+    bool_ref = True
+    if dtype is float or dtype is int:
+        try:
+            if dtype is int:
+                data = int(data)
+            else:
+                data = float(data)
+
+            bool_ref_small = False  
+            if small is not None:
+                if smallclose:
+                    if data < small: bool_ref_small = True
+                else:
+                    if data <= small: bool_ref_small = True
+                    
+            bool_ref_big = False      
+            if big is not None:
+                if bigclose:
+                    if data > big: bool_ref_big = True
+                else:
+                    if data >= big: bool_ref_big = True
+
+            if bool_ref_small or bool_ref_big:
+                raise ValueError
+                    
+        except ValueError:
+            bool_ref = False
+    else:
+        bool_ref = False
+        
+    return bool_ref,data

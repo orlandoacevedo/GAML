@@ -4,33 +4,18 @@ from GAML.charge_gen_scheme import Charge_gen_scheme
 from GAML.file_gen_gaussian import File_gen_gaussian
 from GAML.file_gen_gromacstop import File_gen_gromacstop
 from GAML.GAML_main import GAML_main
+from GAML.file_gen_mdpotential import File_gen_mdpotential
+from GAML.GAML_autotrain import GAML_autotrain
 from GAML.fss_analysis import FSS_analysis
 from GAML.__init__ import __version__
 
 import sys
+from sys import exit
 import argparse
 
 
 # The collection of all the parameters and thier default setting
 # The string MUST is used as a place holder, which means the parameter is required
-
-par_charge_gen_scheme = {'command'        :   'charge_gen_scheme',
-                         'charge_path'    :   'MUST',
-                         'symmetry_list'  :   None,
-                         'counter_list'   :   None,
-                         'offset_list'    :   None,
-                         'gennm'          :   5,
-                         'nmround'        :   2,
-                         'total_charge'   :   1.0,
-                         'fname'          :   'ChargeRandomGen',
-                         'in_keyword'     :   'ATOM',
-                         'bool_neutral'   :   True,
-                         'bool_nozero'    :   True,
-                         'bool_limit'     :   None,
-                         'threshold'      :   1.0,
-                         'offset_nm'      :   5,
-                         }
-
 
 par_GAML = {'command'           :   'GAML',
             'charge_path'       :   None,
@@ -48,12 +33,28 @@ par_GAML = {'command'           :   'GAML',
             'total_charge'      :   1.0,
             'bool_neutral'      :   True,
             'bool_nozero'       :   True,
-            'bool_limit'        :   None,
+            'pn_limit'          :   None,
             'threshold'         :   1.0,
             'ratio'             :   '7:2:1',
             'fname'             :   'ML_chargeRandomGen',
             }
 
+par_charge_gen_scheme = {'command'        :   'charge_gen_scheme',
+                         'charge_path'    :   'MUST',
+                         'symmetry_list'  :   None,
+                         'counter_list'   :   None,
+                         'offset_list'    :   None,
+                         'gennm'          :   5,
+                         'nmround'        :   2,
+                         'total_charge'   :   0.0,
+                         'fname'          :   'ChargeRandomGen',
+                         'in_keyword'     :   'ATOM',
+                         'bool_neutral'   :   True,
+                         'bool_nozero'    :   True,
+                         'pn_limit'       :   None,
+                         'threshold'      :   1.0,
+                         'offset_nm'      :   5,
+                         }
 
 par_charge_gen_range = {'command'      :   'charge_gen_range',
                         'charge_path'  :   'MUST',
@@ -100,6 +101,13 @@ par_fss_analysis = {'command'          :     'fss_analysis',
                     'fname'            :    'FSS_analysis',
                     }
 
+#Note: this method is not loaded to settingfile
+par_GAML_autotrain = {'command'       :  'GAML_autotrain',
+                     }
+
+#Note: this method is not loaded to settingfile
+par_file_gen_mdpotential = {'command' :  'file_gen_mdpotential',
+                           }
 
 # For double check and validation
 # this list should be updated if any future modification happen.
@@ -109,7 +117,10 @@ parname_list = [    par_charge_gen_scheme,
                     par_GAML,
                     par_file_gen_gromacstop,
                     par_file_gen_gaussian,
-                    par_fss_analysis,       ]
+                    par_fss_analysis,       
+                    par_GAML_autotrain,
+                    par_file_gen_mdpotential,
+]
 
 
 par_cmdlist = [ddict['command'].lower() for ddict in parname_list]
@@ -139,10 +150,13 @@ def pro_settingfile(settingfile):
 
     def f_remove_comment(string):
         if string.find('#') == -1:
-            return string
+            return string.strip()
         return string[:string.find('#')]
 
-    dump_value = file_size_check(settingfile,fsize=5)
+    log = file_size_check(settingfile,fsize=5)
+    if not log['nice']:
+        print(log['info'])
+        exit()
     
     # this universal string is used to exit prompt
     error_info = 'Error: the input setting file is wrong'
@@ -206,8 +220,8 @@ def pro_settingfile(settingfile):
                                     print('Error line: ',line)
                                     exit()
                                     
-                            # take care of bool_limit exception
-                            elif parname == 'bool_limit':
+                            # take care of pn_limit exception
+                            elif parname == 'pn_limit':
                                 stmp = f_remove_comment(lp[1])
                                 if len(stmp.split()) == 0:
                                     ls.append(None)
@@ -311,7 +325,7 @@ def pro_settingfile(settingfile):
 def pro_argparse():
     
     parser = argparse.ArgumentParser(description='Genetic Algorithm Machine Learning',allow_abbrev=False)
-    parser.add_argument('-v','--version',action='version',version='GAML Package '+__version__)
+    #parser.add_argument('-v','--version',action='version',version='GAML Package '+__version__)
     subparser = parser.add_subparsers()
 
     
@@ -337,7 +351,7 @@ def pro_argparse():
     sub_2.add_argument('-cl','--counter_list',nargs='+',help='counter_list,a list showing the sum of the group is zero')
     sub_2.add_argument('-nu','--bool_neutral',help='bool, force the final calculated value scaled from 1 or not, default is True')
     sub_2.add_argument('-nz','--bool_nozero',help='bool, do not allow 0 exist in the final result or not, default is True')
-    sub_2.add_argument('-q','--bool_limit',nargs='+',help='bool, to define the value range, whether positive or negative, default is None')
+    sub_2.add_argument('-q','--pn_limit',nargs='+',help='bool, to define the value range, whether positive or negative, default is None')
     sub_2.add_argument('-nm','--gennm',help='output file numbers, default is 5. This number is always no \
                         bigger than the input file frames')
     sub_2.add_argument('-nr','--nmround',help='decimal round number, positive integer, default is 2')
@@ -389,7 +403,7 @@ def pro_argparse():
     sub_5.add_argument('-cl','--counter_list',nargs='+',help='counter_list,a list showing the sum of the group is zero')
     sub_5.add_argument('-nu','--bool_neutral',help='bool, force the final calculated value scaled from 1 or not, default is True')
     sub_5.add_argument('-nz','--bool_nozero',help='bool, do not allow 0 exist in the final result or not, default is True')
-    sub_5.add_argument('-q','--bool_limit',nargs='+',help='bool, to define the value range, whether positive or negative, default is None')
+    sub_5.add_argument('-q','--pn_limit',nargs='+',help='bool, to define the value range, whether positive or negative, default is None')
     sub_5.add_argument('-lim','--threshold',help='positive number, set the limit for each entries value, default is 1')
     sub_5.add_argument('-nm','--gennm',help='output file numbers, default is 5, This number is always no bigger than the final \
                         processed frames')
@@ -416,6 +430,24 @@ def pro_argparse():
     sub_6.add_argument('-pn','--pallette_nm',help='number of pallettes used to plot the graph, default is 50')
     sub_6.add_argument('-cm','--color_map',help='this is a key word compatible with Matplotlib modules, default is rainbow')
     sub_6.add_argument('-o','--fname',help='output file name, default is FSS_analysis')
+
+    sub_7 = subparser.add_parser('file_gen_mdpotential', help='Command to use GAML auto-training')
+    sub_7.set_defaults(command='file_gen_mdpotential')
+    sub_7.add_argument('-f','--file_path',help='MD simulation result file',required=True)
+    sub_7.add_argument('-i','--atomnm',help='the total number of atoms in single system, default is 500')
+    sub_7.add_argument('-o','--fname',help='output file name, default is MAE_PAIR')
+    sub_7.add_argument('--MAE',help='mean-absolute-value, default is 0.05')
+    sub_7.add_argument('--temperature',help='Unit in Kelvin')
+    sub_7.add_argument('-s','--chargefile',help='input charge file',required=True)
+    sub_7.add_argument('--block',help='mark for file process, default is COUNT')
+    sub_7.add_argument('-lv','--literature_value',help='corresponded values, number',nargs='+',required=True)
+    sub_7.add_argument('--bool_gas',help='Exclusive for Heat-of-vaporization, gas phase calculation, default is False')
+    sub_7.add_argument('-kw','--kwlist',help='MD result key-word list, default is Density',nargs='+')
+
+    sub_8 = subparser.add_parser('GAML_autotrain', help='To generate auto-training bash file')
+    sub_8.set_defaults(command='gaml_autotrain')
+    sub_8.add_argument('-f','--file_path',help='Auto training parameters all-in-one file',required=True)
+    sub_8.add_argument('--bashinterfile',help='A bash interface file to be used to override default outputs')
 
     args = parser.parse_args()
 
@@ -451,9 +483,25 @@ def pro_argparse():
             exit()
 
     if ('atomtype_list' in fgetdict) and (fgetdict['atomtype_list'] is not None):
-        try:
-            fgetdict['atomtype_list'] = eval(*fgetdict['atomtype_list'])
-        except:
+        line = ''
+        for i in fgetdict['atomtype_list']: line += i
+        stmp = line.replace(',',' ').replace('[','[ ').replace(']',' ]').strip()
+        bo = False
+        if len(stmp) < 4:
+            bo = True
+        elif len(stmp) == 4:
+            if stmp[0] == '[' and stmp[-1] == ']':
+                fgetdict['atomtype_list'] = None
+            else:
+                bo = True
+        else:
+            if stmp[0] == '[' and stmp[-1] == ']':
+                stmp = stmp.replace('[',' ').replace(']',' ')
+                fgetdict['atomtype_list'] = stmp.split()
+            else:
+                bo = True
+
+        if bo:
             print('Error: the parameter atomtype_list is wrong')
             print(fgetdict['atomtype_list'])
             exit() 
@@ -466,37 +514,69 @@ def _cmd_run(fdict):
     """This is the combined method to actually run the command, which by default assumes the input directory
        has been properly processed. For any future update, this method should also be updated."""
 
-    if fdict['command'] == 'charge_gen_range':
-        charge_path = fdict.pop('charge_path',None)
-        atomnm = fdict.pop('atomnm',None)
+    if fdict['command'].lower() == 'charge_gen_range':
+        fp = Charge_gen_range(**fdict)
+        if fp.log['nice']:
+            fp.file_print()
+        else:
+            print(fp.log['info'])
+            exit()
 
-        dump_value = Charge_gen_range(charge_path,atomnm,**fdict).file_print()
+    elif fdict['command'].lower() == 'charge_gen_scheme':
+        fp = Charge_gen_scheme(**fdict)
+        if fp.log['nice']:
+            fp.file_print()
+        else:
+            print(fp.log['info'])
+            exit()
 
-    elif fdict['command'] == 'charge_gen_scheme':
-        charge_path = fdict.pop('charge_path',None)
+    elif fdict['command'].lower() == 'file_gen_gaussian':
+        fp = File_gen_gaussian(**fdict)
+        if fp.log['nice']:
+            fp.file_print()
+        else:
+            print(fp.log['info'])
+            exit()
 
-        dump_value = Charge_gen_scheme(charge_path,**fdict).file_print()
+    elif fdict['command'].lower() == 'file_gen_gromacstop':
+        fp = File_gen_gromacstop(**fdict)
+        if fp.log['nice']:
+            fp.file_print()
+        else:
+            print(fp.log['info'])
+            exit()
 
-    elif fdict['command'] == 'file_gen_gaussian':
-        toppath = fdict.pop('toppath',None)
-        file_path = fdict.pop('file_path',None)
+    elif fdict['command'].lower() == 'gaml':
+        fp = GAML_main(**fdict)
+        if fp.log['nice']:
+            fp.file_print()
+        else:
+            print(fp.log['info'])
+            exit()
 
-        dump_value = File_gen_gaussian(toppath,file_path,**fdict).file_print()
+    elif fdict['command'].lower() == 'fss_analysis':
+        fp = FSS_analysis(**fdict)
+        if fp.log['nice']:
+            fp.file_print()
+        else:
+            print(fp.log['info'])
+            exit()
 
-    elif fdict['command'] == 'file_gen_gromacstop':
-        toppath = fdict.pop('toppath',None)
-        charge_path = fdict.pop('charge_path',None)
+    elif fdict['command'].lower() == 'file_gen_mdpotential':
+        fp = File_gen_mdpotential(**fdict)
+        if fp.log['nice']:
+            fp.file_print()
+        else:
+            print(fp.log['info'])
+            exit()
 
-        dump_value = File_gen_gromacstop(toppath,charge_path,**fdict).file_print()
-
-    elif fdict['command'] == 'gaml':
-        dump_value = GAML_main(**fdict).file_print()
-
-    elif fdict['command'] == 'fss_analysis':
-        file_path = fdict.pop('file_path',None)
-
-        dump_value = FSS_analysis(file_path,**fdict).file_print()
-
+    elif fdict['command'].lower() == 'gaml_autotrain':
+        fp = GAML_autotrain(**fdict)
+        if fp.log['nice']:
+            fp.file_print()
+        else:
+            print(fp.log['info'])
+            exit()
     else:
         # Normally, this information will never be output. However, it is still defined
         print('Error: no command is executed')

@@ -15,6 +15,6 @@ threshold        =                      # default is 1.0
 bool_neutral     =     false            # default is True
 bool_nozero      =                      # default is True
 bool_abscomp     =                      # default is True
-bool_limit       = 3n
+pn_limit         = 3n  
 cut_keyword      =                      # default is MAE
 

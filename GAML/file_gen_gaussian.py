@@ -29,85 +29,92 @@ class File_gen_gaussian(object):
     Besides, the basis_set and charge_spin can also be defined.
     """
 
-    def __init__(self,toppath,file_path,**kwargs):  
-        dump_value = file_size_check(toppath,fsize=10)
-        dump_value = file_size_check(file_path,fsize=500)
+    def __init__(self,*args,**kwargs):
+        self.log = {'nice':True,}
+
+        if 'toppath' in kwargs and kwargs['toppath'] is not None:
+            self.toppath = kwargs['toppath']
+            log = file_size_check(self.toppath,fsize=10)
+            if not log['nice']:
+                self.log['nice'] = False
+                self.log['info'] = log['info']
+                return
+        else:
+            self.log['nice'] = False
+            self.log['info'] = 'Error: the parameter toppath is missing'
+            return
+
+        if 'file_path' in kwargs and kwargs['file_path'] is not None:
+            self.file_path = kwargs['file_path']
+            log = file_size_check(self.file_path,fsize=500)
+            if not log['nice']:
+                self.log['nice'] = False
+                self.log['info'] = log['info']
+                return
+        else:
+            self.log['nice'] = False
+            self.log['info'] = 'Error: the parameter file_path is missing'
+            return
         
-        self.toppath = toppath
-        dump_value = self._f_pro_toppath(toppath)
-            
-        self.file_path = file_path
-        dump_value = self._f_pro_file_path(file_path)
+        self._f_pro_toppath(self.toppath)
+        if not self.log['nice']: return
+        
+        self._f_pro_file_path(self.file_path)
+        if not self.log['nice']: return
+        
+        self._f_remove_periodic()
 
-        dump_value = self._f_remove_periodic()
-
-
-        if 'select_range' in kwargs:
-            if kwargs['select_range'] is None:
-                self.select_range = 10
-            else:
-                try:
-                    self.select_range = float(kwargs['select_range'])
-                    if self.select_range <= 0:
-                        raise ValueError
-                except:
-                    print('Error: the parameter select_range has to be a positve number')
-                    exit()
+        if 'select_range' in kwargs and kwargs['select_range'] is not None:
+            try:
+                self.select_range = float(kwargs['select_range'])
+                if self.select_range <= 0:
+                    raise ValueError
+            except ValueError:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter select_range has to be a positve number'
+                return
         else:
             self.select_range = 10
 
-        dump_value = self._f_pro_selections()
+        self._f_pro_selections()
 
-
-        if 'gennm' in kwargs:
-            if kwargs['gennm'] is None:
-                if len(self.prolist) < 5:               
+        if 'gennm' in kwargs and kwargs['gennm'] is not None:
+            try:
+                self.gennm = int(kwargs['gennm'])
+                if self.gennm > len(self.prolist) or self.gennm <= 0:
                     self.gennm = len(self.prolist)
-                else:
-                    self.gennm = 5
-            else:
-                try:
-                    self.gennm = int(kwargs['gennm'])
-                    if self.gennm > len(self.prolist) or self.gennm <= 0:
-                        self.gennm = len(self.prolist)
-                except:
-                    print('Error: the parameter gennm has to be a number')
-                    print('Error gennm: ',kwargs['gennm'])
-                    exit()              
+            except ValueError:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter gennm has to be a number\n' + \
+                                   'Error gennm: ' + kwargs['gennm']
+                return            
         elif len(self.prolist) < 5:               
             self.gennm = len(self.prolist)
         else:
             self.gennm = 5
 
-        dump_value = self._f_random_selections()
+        self._f_random_selections()
 
 
-        if 'basis_set' in kwargs:
-            if kwargs['basis_set'] is None:
-                self.basis_set = '# HF/6-31G(d) Pop=CHelpG'
-            else:
-                self.basis_set = kwargs['basis_set']
+        if 'basis_set' in kwargs and kwargs['basis_set'] is not None:
+            self.basis_set = kwargs['basis_set']
         else:
             self.basis_set = '# HF/6-31G(d) Pop=CHelpG'
             
 
-        if 'charge_spin' in kwargs:
-            if kwargs['charge_spin'] is None:
-                self.charge_spin = '0 1'
-            else:
-                self.charge_spin = str(kwargs['charge_spin'])
+        if 'charge_spin' in kwargs and kwargs['charge_spin'] is not None:
+            self.charge_spin = str(kwargs['charge_spin'])
         else:
             self.charge_spin = '0 1'
             
 
-        if 'fname' in kwargs:
-            if kwargs['fname'] is None:
-                self.fname = 'GaussInput'
-            else:
-                self.fname = str(kwargs['fname'])
+        if 'fname' in kwargs and kwargs['fname'] is not None:
+            self.fname = str(kwargs['fname'])
         else:
             self.fname = 'GaussInput'
-            
+
+        self._prefile()
+        if not self.log['nice']: return
 
 
     def _f_pro_toppath(self,toppath):
@@ -147,7 +154,7 @@ class File_gen_gaussian(object):
                             print('Number ',count,'  ',i[0],' --> ',i[0][0])
                         else:
                             proatomtype.append([i[0],i[0]])
-                            print('Number ',count,'  ',i[0],' --> ',i[0])
+                            print('Number ',count,'  ',i[0],' --> ','N/A')
                 else:
                     proatomtype.append(i)
                     print('Number ',count,'  ',i[0],' --> ',i[1])
@@ -188,9 +195,10 @@ class File_gen_gaussian(object):
                         if len(ltmp) == 6 or len(ltmp) == 7:
                             atomtype.append(ltmp[0].split('-'))
                         else:
-                            print('Error: wrong defined topfiles')
-                            print(line)
-                            exit()
+                            self.log['nice'] = False
+                            self.log['info'] = 'Error: wrong defined topfiles\n' + \
+                                               '     :' + line
+                            return
                         j += 1
                 i = j 
                 
@@ -209,9 +217,10 @@ class File_gen_gaussian(object):
                             ls = [ltmp[1],ltmp[3]]
                             atom.append(ls)
                         else:
-                            print('Error: wrong defined topfiles')
-                            print(line)
-                            exit()
+                            self.log['nice'] = False
+                            self.log['info'] = 'Error: wrong defined topfiles\n' + \
+                                               '     :' + line
+                            return
                         j += 1
                 i = j 
 
@@ -230,9 +239,10 @@ class File_gen_gaussian(object):
                             ls = [ltmp[0],int(ltmp[1])]
                             self.mol.append(ls)
                         else:
-                            print('Error: wrong defined topfiles')
-                            print(line)
-                            exit()
+                            self.log['nice'] = False
+                            self.log['info'] = 'Error: wrong defined topfiles\n' + \
+                                               '     :' + line
+                            return
                         j += 1
                 i = j
             
@@ -240,6 +250,43 @@ class File_gen_gaussian(object):
                 i += 1
 
 
+        # adjust [atoms] parameters sequence to correspond to the [systems] directive sequence
+        proatom = []
+        for sys in self.mol:
+            i = 0
+            ltmp = []
+            while i < len(atom):         
+                if atom[i][1] == sys[0]:
+                    ltmp.append(atom[i][0])
+                i += 1
+            proatom.append(ltmp)
+
+        if len(proatom) != len(self.mol):
+            self.log['nice'] = False
+            line = 'Error: at least one residue name is wrong \n' + \
+                   '     : all the residues are: \n'
+            for i in self.mol:
+                line += i + '    '
+            line += '\nError, all the atoms residues are: \n'
+            for i in atom:
+                line += i + '    '
+            self.log['info'] = line
+            return
+
+        for i in proatom:
+            for latom in i:
+                atomndx = True
+                for j in range(len(atomtype)):
+                    if latom == atomtype[j][0]:
+                        atomndx = False
+                        break
+                if atomndx:
+                    self.log['nice'] = False
+                    self.log['info'] = 'Error: one of atomtype in pdb file is not defined in the top file\n' + \
+                                       'Error atomtype: ' + latom
+                    return
+
+        
         # modify the atom_type
         while True:
             atomtype = f_atomtype(atomtype)
@@ -262,7 +309,7 @@ class File_gen_gaussian(object):
                                 if nm > len(atomtype):
                                     print('Warning: the input number is too large, the atomtype is not defined')
                                     bool_input = True
-                            except:
+                            except ValueError:
                                 print('Warning: the input is wrong, only integer is accepted. Please input again')
                                 bool_input = True
                         else:
@@ -279,27 +326,6 @@ class File_gen_gaussian(object):
             else:
                 break
                
-        # adjust [atoms] parameters sequence to correspond to the [systems] directive sequence
-        proatom = []
-        for sys in self.mol:
-            i = 0
-            ltmp = []
-            while i < len(atom):         
-                if atom[i][1] == sys[0]:
-                    ltmp.append(atom[i][0])
-                i += 1
-            proatom.append(ltmp)
-
-        if len(proatom) != len(self.mol):
-            print('Error: at least one residue name is wrong \n')
-            print('     : all the residues are: ')
-            for i in self.mol:
-                print(i)
-            print('\nError, all the atoms residues are: ')
-            for i in atom:
-                print(i)
-            exit()
-
 
         # self.mollist, self.atomnm
         self.mollist = []
@@ -317,22 +343,12 @@ class File_gen_gaussian(object):
         for i in proatom:
             ltmp = []
             for latom in i:
-                j = 0
-                atomndx = True
-                while j < len(atomtype):
+                for j in range(len(atomtype)):
                     if latom == atomtype[j][0]:
                         ltmp.append(atomtype[j][1])
-                        atomndx = False
                         break
-                    j += 1
-                if atomndx:
-                    print('Error: one of atomtype in pdb file is not defined in the top file')
-                    print('Error atomtype: ',latom)
-                    exit()
             self.atom.append(ltmp)
             
-        return 1
-
 
     
     def _f_pro_file_path(self,file_path):
@@ -377,18 +393,17 @@ class File_gen_gaussian(object):
                     i += 1
                 box_length = float(f.readline().split()[0]) * 10
         else:
-            print('Error: only pdb file and gro files are supported')
-            exit()
+            self.log['nice'] = False
+            self.log['info'] = 'Error: only pdb file and gro files are supported'
+            return
 
         # self.box_half_length
         self.box_half_length = box_length / 2
 
         if len(self.totlist) != self.atomnm:
-            print('Error: Top and pdb file are not corresponded')
-            exit()
-
-        return 1
-
+            self.log['nice'] = False
+            self.log['info'] = 'Error: Top and pdb file are not corresponded'
+            return
 
 
     def _f_remove_periodic(self):
@@ -431,8 +446,6 @@ class File_gen_gaussian(object):
                 i += 1
             self.prototlist.append(ls)
             self.avercorlist.append(lt)
-            
-        return 1
     
 
 
@@ -489,8 +502,6 @@ class File_gen_gaussian(object):
                         if zindex:
                             self.prolist.append(refcor)
 
-        return 1
-
 
 
     def _f_random_selections(self):
@@ -510,9 +521,6 @@ class File_gen_gaussian(object):
             while len(self.reflist) > self.gennm:
                 ndx = random.randrange(len(self.reflist))
                 self.reflist.remove(self.reflist[ndx])
-                
-        return 1
-
 
 
     # public method
@@ -560,8 +568,8 @@ class File_gen_gaussian(object):
     
 
 
-    def file_print(self):
-        """the module used, file_gen_new"""
+    def _prefile(self):
+        """Prepare for print"""        
 
         # the 'resnmprint' is used to identify the position of the chosen_residue
         profile = []
@@ -585,7 +593,7 @@ class File_gen_gaussian(object):
             i += 1
             
             
-        outfile = []
+        self.outfile = []
         pfname = self.fname + '_SYS_ALL'
         for res in profile:
             ltmp = []
@@ -603,29 +611,35 @@ class File_gen_gaussian(object):
                 j += 1
             ltmp.append('\n\n')
             ls.append(ltmp)
-            outfile.append(ls)
+            self.outfile.append(ls)
 
-        if len(outfile) == 0:
-            print('Warning: no file is going to output')
-            print('       : please try to change the input pdb file')
-            exit()
+        if len(self.outfile) == 0:
+            self.log['nice'] = False
+            self.log['info'] = 'Warning: no file is going to output\n' + \
+                               '       : please try to change the input pdb file'
+            return
         else:
             print('\nOne sample of generated Gaussian_com files is:\n')
-            for sample in outfile[0]:
+            for sample in self.outfile[0]:
                 for line in sample:
                     print(line)
             print('Do you want to continue?  y/yes, else quit')
             print('    this will generate \'com\' files >',end='    ')
             get_input = input()
             if get_input.upper() != 'Y' and get_input.upper != 'YES':
-                print('\nWarning: you have decided to quit ...')
-                print('       : nothing is generated\n')
-                exit()
+                self.log['nice'] = False
+                self.log['info'] = '\nWarning: you have decided to quit ...\n' + \
+                                   '       : nothing is generated\n'
+                return
             else:
                 print('\nGreat! Going to generate files ...\n')
 
+
+    def file_print(self):
+        """the module used, file_gen_new"""
+
         fnamelist = []
-        for sys in outfile:
+        for sys in self.outfile:
             filename = file_gen_new(pfname,fextend='com',foriginal=False)
             fnamelist.append(filename)       
             with open(filename,mode='wt') as f:
@@ -658,6 +672,6 @@ class File_gen_gaussian(object):
                 f.write('{:>6d} {:s}    {:>20s} \n'.format(j,resnmprint[count],i))
                 count += 1
                 j += 1
-               
-        return 1
 
+
+                 

@@ -1,137 +1,119 @@
 from GAML.functions import file_size_check, file_gen_new,function_roundoff_error, \
-                     function_pro_bool_limit
+                     function_pro_pn_limit
 from GAML.function_prolist import Pro_list
 import random
 
 class Charge_gen_scheme(object):
     """Randomly generate the charge pairs based on the given charge ranges"""
 
-    def __init__(self,charge_path,symmetry_list=None,counter_list=None,
-                 offset_list=None,**kwargs):
-        if 'gennm' in kwargs:
-            if kwargs['gennm'] is None:
-                self.gennm = 5
-            else:
-                try:
-                    self.gennm = int(kwargs['gennm'])
-                    if self.gennm <= 0:
-                        raise ValueError
-                except:
-                    print('Error: the parameter gennm has to be a positive integer')
-                    exit()
+    def __init__(self,*args,**kwargs):
+        self.log = {'nice':True,}
+
+        if 'gennm' in kwargs and kwargs['gennm'] is not None:
+            try:
+                self.gennm = int(kwargs['gennm'])
+                if self.gennm <= 0:
+                    raise ValueError
+            except ValueError:
+                self.log['nice'] = False
+                self.log['info'] =  'Error: the parameter gennm has to be a positive integer'
+                return
         else:
             self.gennm = 5
 
 
-        if 'nmround' in kwargs:
-            if kwargs['nmround'] is None:
-                self.nmround = 2
-            else:
-                try:
-                    self.nmround = int(kwargs['nmround'])
-                    if self.nmround <= 0:
-                        raise ValueError
-                except:
-                    print('Error: the parameter nmround has to be a positive integer')
-                    exit()
+        if 'nmround' in kwargs and kwargs['nmround'] is not None:
+            try:
+                self.nmround = int(kwargs['nmround'])
+                if self.nmround <= 0:
+                    raise ValueError
+            except ValueError:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter nmround has to be a positive integer'
+                return
         else:
             self.nmround = 2
             
 
-        if 'total_charge' in kwargs:
-            if kwargs['total_charge'] is None:
-                self.total_charge = 1.0
-            else:
-                try:
-                    self.total_charge = float(kwargs['total_charge'])
-                except:
-                    print('Error: the parameter total_charge has to be a number')
-                    exit()
+        if 'total_charge' in kwargs and kwargs['total_charge'] is not None:
+            try:
+                self.total_charge = float(kwargs['total_charge'])
+            except ValueError:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter total_charge has to be a number'
+                return
         else:
-            self.total_charge = 1.0
+            self.total_charge = 0.0
             
 
-        if 'fname' in kwargs:
-            if kwargs['fname'] is None:
-                self.fname = 'ChargeRandomGen'
-            else:
-                self.fname = kwargs['fname']
+        if 'fname' in kwargs and kwargs['fname'] is not None:
+            self.fname = kwargs['fname']
         else:
             self.fname = 'ChargeRandomGen'
             
 
-        if 'in_keyword' in kwargs:
-            if kwargs['in_keyword'] is None:
-                self.in_keyword = 'ATOM'
-            else:
-                self.in_keyword = kwargs['in_keyword']
+        if 'in_keyword' in kwargs and kwargs['in_keyword'] is not None:
+            self.in_keyword = kwargs['in_keyword']
         else:
             self.in_keyword = 'ATOM'
 
 
-        if 'bool_neutral' in kwargs:
-            if kwargs['bool_neutral'] is None:
-                self.bool_neutral = True
-            else:
-                self.bool_neutral = False if (kwargs['bool_neutral']is False) else True
+        if 'bool_neutral' in kwargs and kwargs['bool_neutral'] is not None:
+            self.bool_neutral = False if (kwargs['bool_neutral']is False) else True
         else:
             self.bool_neutral = True
 
 
-        if 'bool_nozero' in kwargs:
-            if kwargs['bool_nozero'] is None:
-                self.bool_nozero = True
-            else:
-                self.bool_nozero = False if (kwargs['bool_nozero'] is False) else True
+        if 'bool_nozero' in kwargs and kwargs['bool_nozero'] is not None:
+            self.bool_nozero = False if (kwargs['bool_nozero'] is False) else True
         else:
             self.bool_nozero = True
 
 
-        if 'bool_limit' in kwargs:
-            if kwargs['bool_limit'] is None:
-                self.bool_limit = []
-            elif isinstance(kwargs['bool_limit'],list):
-                self.bool_limit = kwargs['bool_limit']
-            elif isinstance(kwargs['bool_limit'],str):
-                if len(kwargs['bool_limit']) == 0 or len(kwargs['bool_limit'].split()) == 0:
-                    self.bool_limit = []
+        if 'pn_limit' in kwargs and kwargs['pn_limit'] is not None:
+            if isinstance(kwargs['pn_limit'],list):
+                self.pn_limit = kwargs['pn_limit']
+            elif isinstance(kwargs['pn_limit'],str):
+                if len(kwargs['pn_limit']) == 0 or len(kwargs['pn_limit'].split()) == 0:
+                    self.pn_limit = []
                 else:
-                    self.file_line_limit = kwargs['bool_limit']
-                    self.bool_limit = function_pro_bool_limit(kwargs['bool_limit'],False)
+                    self.file_line_pn_limit = kwargs['pn_limit']
+                    log, self.pn_limit = function_pro_pn_limit(kwargs['pn_limit'],False)
+                    if not log['nice']:
+                        self.log['nice'] = False
+                        self.log['info'] = log['info']
+                        return                    
             else:
-                print('Error: the parameter bool_limit is not correctly defined')
-                print('     : ',kwargs['bool_limit'])
-                exit()
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter pn_limit is not correctly defined\n' + \
+                                   '     : ',kwargs['pn_limit']
+                return
         else:
-            self.bool_limit = []
+            self.pn_limit = []
 
 
-        if 'threshold' in kwargs:
-            if kwargs['threshold'] is None:
-                self.threshold = 1.0
-            else:
-                try:
-                    self.threshold = float(kwargs['threshold'])
-                    if self.threshold < 0.3:
-                        raise ValueError
-                except:
-                    print('Error: the parameter threshold has to be greater than 0.3')
-                    exit()
+        if 'threshold' in kwargs and kwargs['threshold'] is not None:
+            try:
+                self.threshold = float(kwargs['threshold'])
+                if self.threshold < 0.3:
+                    raise ValueError
+            except ValueError:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter threshold has to be greater than 0.3'
+                return 
         else:
             self.threshold = 1.0
 
 
-        if 'offset_nm' in kwargs:
-            if kwargs['offset_nm'] is None:
-                self.offset_nm = 5
-            else:
-                try:
-                    self.offset_nm = int(kwargs['offset_nm'])
-                    if self.offset_nm <= 0:
-                        raise ValueError
-                except:
-                    print('Error: the parameter offset_nm has to be a positive integer')
-                    exit()
+        if 'offset_nm' in kwargs and kwargs['offset_nm'] is not None:
+            try:
+                self.offset_nm = int(kwargs['offset_nm'])
+                if self.offset_nm <= 0:
+                    raise ValueError
+            except ValueError:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter offset_nm has to be a positive integer'
+                return
         else:
             self.offset_nm = 5
 
@@ -139,58 +121,88 @@ class Charge_gen_scheme(object):
             self.bool_neutral = False
 
         if self.bool_neutral and self.nmround < 3:
-            print('Error: When bool_neutral is set to True, the nmround should be not less than 2')
-            exit()
+            self.log['nice'] = False
+            self.log['info'] = 'Error: When bool_neutral is set to True, the nmround should be not less than 2'
+            return 
 
 
-        if symmetry_list is None:
+        if 'symmetry_list' in kwargs and kwargs['symmetry_list'] is not None:
+            if isinstance(kwargs['symmetry_list'],list):
+                self.symmetry_list = None if len(kwargs['symmetry_list']) == 0 else kwargs['symmetry_list']
+            else:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter symmetry_list has to be a list'
+                return
+        else:
             self.symmetry_list = None
-        elif isinstance(symmetry_list,list):
-            self.symmetry_list = None if len(symmetry_list) == 0 else symmetry_list
+
+
+        if 'counter_list' in kwargs and kwargs['counter_list'] is not None:
+            if isinstance(kwargs['counter_list'],list):
+                self.counter_list = None if len(kwargs['counter_list']) == 0 else kwargs['counter_list']
+            else:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the parameter counter_list has to be a list'
+                return
         else:
-            print('Error: the parameter symmetry_list has to be a list')
-            exit()
-            
-        if counter_list is None:
             self.counter_list = None
-        elif isinstance(counter_list,list):
-            self.counter_list = None if len(counter_list) == 0 else counter_list
+
+        if 'offset_list' in kwargs:
+            if kwargs['offset_list'] is None or len(kwargs['offset_list']) == 0:
+                offset_list = None
+            else:
+                offset_list = kwargs['offset_list']
         else:
-            print('Error: the parameter counter_list has to be a list')
-            exit()
+            self.counter_list = None
             
 
-        self.charge_path = charge_path
-        self.charge_list = self._f_pro_charge_path(charge_path)
+        if 'charge_path' in kwargs and kwargs['charge_path'] is not None:
+            self.charge_path = kwargs['charge_path']
+            self.charge_list = self._f_pro_charge_path(kwargs['charge_path'])
+            if not self.log['nice']: return
+        else:
+            self.log['nice'] = False
+            self.log['info'] = 'Error: the parameter charge_path is missing'
+            return
 
         rmax = 0
-        if len(self.bool_limit) != 0:
-            ls = [i[0] for i in self.bool_limit]
+        if len(self.pn_limit) != 0:
+            ls = [i[0] for i in self.pn_limit]
             rmax = max(rmax,max(ls))
         if rmax > len(self.charge_list):
-            print('Error: some entries in parameter bool_limit are out of the index')
-            print('     : the biggest number can be defined is ',len(charge_list))
-            print('     : however, the number in bool_limit is ', rmax)
-            exit()
+            self.log['nice'] = False
+            self.log['info'] = 'Error: some entries in parameter pn_limit are out of the index\n' + \
+                               '     : the biggest number can be defined is ' + str(len(charge_list)) + '\n' + \
+                               '     : however, the number in pn_limit is ' + str(rmax)
+            return
+
+
+        
         
         if (self.symmetry_list is None) and (self.counter_list is None):
             self.chargepair = self.gen_chargepair_file()
         else:          
             self.prolist = Pro_list(symmetry_list=self.symmetry_list,counter_list=self.counter_list,
                                     offset_list=offset_list)
-
+            if not self.prolist.log['nice']:
+                self.log['nice'] = False
+                self.log['nice'] = self.prolist.log['info']
+                return
+            
             if len(self.prolist.symmetry_list) == 2 and len(self.prolist.reflist) != 0 and self.total_charge != 0:
-                print('Error: if only two parameters are in perturbation and they are set to counter')
-                print('Error: then the total_charge has to be equal to zero')
-                exit()
+                self.log['nice'] = False
+                self.log['info'] = 'Error: if only two parameters are in perturbation and they are set to counter \n' + \
+                                   'Error: then the total_charge has to be equal to zero'
+                return
 
             self.reflist = self.prolist.reflist
 
             if len(self.prolist.symmetry_list) == 0:
                 rmax = [max(i[0],i[2]) for i in self.prolist.reflist]
                 if len(self.charge_list) < 2*len(rmax) or len(self.charge_list) < max(rmax):
-                    print('Error: the charge_path and counter_list are not corresponded')
-                    exit()
+                    self.log['nice'] = False
+                    self.log['info'] = 'Error: the charge_path and counter_list are not corresponded'
+                    return
                 self.chargepair = self.gen_chargepair_counter()
                 
             else:
@@ -198,8 +210,9 @@ class Charge_gen_scheme(object):
                 self.offset_list = self.prolist.offset_list
                 
                 if len(self.charge_list) < self.prolist.symmetry_length:
-                    print('Error: the charge_path and symmetry_list are not corresponded')
-                    exit()
+                    self.log['nice'] = False
+                    self.log['info'] = 'Error: the charge_path and symmetry_list are not corresponded'
+                    return
 
                 if len(self.symmetry_list) <= 4 and len(self.prolist.reflist) != 0:    
                     self.chargepair = self.gen_chargepair_counter()
@@ -221,13 +234,18 @@ class Charge_gen_scheme(object):
                    and (isinstance(i[1],int) or isinstance(i[1],float)):
                     pass
                 else:
-                    print('Error: the charge_path has to be a 2D nested number list')
-                    print('       and its each sublist only contains two indices')
-                    exit()                   
+                    self.log['nice'] = False
+                    self.log['info'] = 'Error: the charge_path has to be a 2D nested number list\n' + \
+                                           '       and its each sublist only contains two indices'
+                    return 1        
                 
         elif isinstance(charge_path,str):
             
-            dump_value = file_size_check(charge_path,fsize=100)
+            log = file_size_check(charge_path,fsize=100)
+            if not log['nice']:
+                self.log['nice'] = False
+                self.log['info'] = log['info']
+                return 1
             
             charge_list = []
             with open(charge_path,mode='rt') as f:
@@ -259,11 +277,6 @@ class Charge_gen_scheme(object):
     def gen_chargepair_counter(self):
         """Randomly generate charge_pairs based on the given charge range
            and counter_list"""
-
-        # avoid wrong calling
-        if self.counter_list is None:
-            print('Error: the symmetry_list is not defined')
-            exit()
             
         # make a copy of counter_list -> reflist
         refcntlist = self.reflist[:]
@@ -375,18 +388,18 @@ class Charge_gen_scheme(object):
                 i += 1
 
 
-            # apply the bool_limit, take care the python index starts at zero
-            bool_tmp_limit = False
-            for i in self.bool_limit:
+            # apply the pn_limit, take care the python index starts at zero
+            bool_tmp_pn_limit = False
+            for i in self.pn_limit:
                 v = ltmp[i[0]-1]
                 if i[1] == 'p' and v < 0:
-                    bool_tmp_limit = True
+                    bool_tmp_pn_limit = True
                     break
                 elif i[1] == 'n' and v > 0:
-                    bool_tmp_limit = True
+                    bool_tmp_pn_limit = True
                     break
                 
-            if bool_tmp_limit:
+            if bool_tmp_pn_limit:
                 continue
             
 
@@ -407,11 +420,6 @@ class Charge_gen_scheme(object):
     def gen_chargepair_symmetry(self):
         """Randomly generate charge_piars based on the given charege range,
            symmetry_list and counter_list"""
-
-        # avoid wrong calling
-        if self.symmetry_list is None:
-            print('Error: the symmetry_list is not defined')
-            exit()
        
         # make a copy of counter_list -> reflist
         refcntlist = self.prolist.reflist[:]
@@ -686,18 +694,18 @@ class Charge_gen_scheme(object):
                         break
 
 
-            # apply the bool_limit, take care the python index starts at zero
-            bool_tmp_limit = False
-            for i in self.bool_limit:
+            # apply the pn_limit, take care the python index starts at zero
+            bool_tmp_pn_limit = False
+            for i in self.pn_limit:
                 v = ltmp[i[0]-1]
                 if i[1] == 'p' and v < 0:
-                    bool_tmp_limit = True
+                    bool_tmp_pn_limit = True
                     break
                 elif i[1] == 'n' and v > 0:
-                    bool_tmp_limit = True
+                    bool_tmp_pn_limit = True
                     break
                 
-            if bool_tmp_limit:
+            if bool_tmp_pn_limit:
                 continue
 
 
@@ -750,9 +758,9 @@ class Charge_gen_scheme(object):
                 f.write('# The counter_list used is:\n')
                 f.write('#   {:s}\n\n'.format(self.prolist.file_line_counter))
 
-            if len(self.bool_limit) != 0:
-                f.write('# The bool_limit used is:\n')
-                f.write('#   {:s}\n\n'.format(self.file_line_limit))
+            if len(self.pn_limit) != 0:
+                f.write('# The pn_limit used is:\n')
+                f.write('#   {:s}\n\n'.format(self.file_line_pn_limit))
                 
             f.write('# The total_charge is: < {:} >\n\n'.format(self.total_charge))
             f.write('# The bool_neutral is: < {:s} >\n\n'.format('ON' if self.bool_neutral else 'OFF'))
@@ -776,5 +784,3 @@ class Charge_gen_scheme(object):
                 f.write('\n')
             f.write('\n\n')
                 
-        return 1
-
