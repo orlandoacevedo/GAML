@@ -23,13 +23,21 @@ class GAML_autotrain(object):
         self.fname = 'PAIR_Charge'
         self.parameters = { 'top_gas_path'        : None,
                             'top_liq_path'        : None,
+                            'top_fep_path'        : None,
                             'gro_gas_path'        : None,
                             'gro_liq_path'        : None,
+                            'gro_fep_path'        : None,
                             'grompp_min_gas_path' : None,
                             'grompp_min_liq_path' : None,
+                            'grompp_nvt_liq_path' : None,
                             'grompp_npt_liq_path' : None,
                             'grompp_prod_gas_path': None,
                             'grompp_prod_liq_path': None,
+                            'grompp_fep_min_steep_path': None,
+                            'grompp_fep_min_lbfgs_path': None,
+                            'grompp_fep_nvt_path' : None,
+                            'grompp_fep_npt_path' : None,
+                            'grompp_fep_prod_path': None,
                             'charge_range_path'   : None,
                             'gromacs_energy_kw'   : 'Density',
                             'literature_value'    : 1000,
@@ -52,6 +60,9 @@ class GAML_autotrain(object):
                             'bool_neutral'        : None,
                             'bool_nozero'         : None,
                             'bool_abscomp'        : None,
+                            'reschoose'           : None,
+                            'analysis_begintime'  : None,
+                            'analysis_endtime'    : None,
                          }
         
         self._profile()
@@ -186,7 +197,7 @@ class GAML_autotrain(object):
                 if 'RAW' in key:
                     pass
                 elif self.parameters[key] is None:
-                    f.write("{:}=''\n".format(key))
+                    f.write("{:}= \n".format(key))
                 else:
                     if key == 'symmetry_list' or key == 'counter_list' or \
                        key == 'offset_list':
