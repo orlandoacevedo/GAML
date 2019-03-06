@@ -325,7 +325,7 @@ def pro_settingfile(settingfile):
 def pro_argparse():
     
     parser = argparse.ArgumentParser(description='Genetic Algorithm Machine Learning',allow_abbrev=False)
-    #parser.add_argument('-v','--version',action='version',version='GAML Package '+__version__)
+    parser.add_argument('-v','--version',action='version',version='GAML Package '+__version__)
     subparser = parser.add_subparsers()
 
     
