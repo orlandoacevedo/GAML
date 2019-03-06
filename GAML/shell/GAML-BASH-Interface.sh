@@ -75,11 +75,11 @@ if $BOOL_LIQ
 then
     if ! [[ -d Test ]]; then mkdir Test; fi
     cd Test
-    if ! [[ -f test_pro_liq.tpr ]]
+    if ! [[ -f test_prod_liq.tpr ]]
     then
         $gmx grompp -f ../$grompp_prod_liq_path -c ../$gro_liq_path \
                     -p ../$top_liq_path -o test_prod_liq.tpr
-        if ! [[ -f test_pro_liq.tpr ]]; then BOOL_LIQ=false; fi
+        if ! [[ -f test_prod_liq.tpr ]]; then BOOL_LIQ=false; fi
     fi
     cd ../
 fi
@@ -95,11 +95,11 @@ if $BOOL_GAS
 then
     if ! [[ -d Test ]]; then mkdir Test; fi
     cd Test
-    if ! [[ -f test_pro_gas.tpr ]]
+    if ! [[ -f test_prod_gas.tpr ]]
     then
         $gmx grompp -f ../$grompp_prod_gas_path -c ../$gro_gas_path \
                     -p ../$top_gas_path -o test_prod_gas.tpr
-        if ! [[ -f test_pro_gas.tpr ]]; then BOOL_GAS=false; fi
+        if ! [[ -f test_prod_gas.tpr ]]; then BOOL_GAS=false; fi
     fi
     cd ../
 fi
@@ -119,10 +119,10 @@ then
 fi
 
 
-# Get the total number of molecules from $gro_liq_path
+# Get the total number of molecules from $top_liq_path
 if $BOOL_LIQ && [[ -n $reschoose ]]
 then
-    MOLNM=( $(grep -i "^[[:blank:]]*$reschoose" $gro_liq_path) )
+    MOLNM=( $(grep -i "^[[:blank:]]*$reschoose" $top_liq_path) )
     MOLNM=${MOLNM[-1]}
     
     if ! [[ $MOLNM =~ ^[0-9]+$ ]]
