@@ -163,7 +163,7 @@ gaml [command] -h
 
 ## Notes
 ----------
-The most recent version of the software is GAML v0.4 and is still heavily under development. Lennard-Jones optimization has not been implemented in this GitHub version.
+The most recent version of the software is GAML v0.51 and is still heavily under development. Lennard-Jones optimization has not been implemented in this GitHub version.
 A test for a 1-butylpyridinium-based ionic liquid can be found under the ``sample/`` directory
 Some features worth mentioning:
 + Customized selection range for Coulombic interactions with PBC removal
