@@ -14,8 +14,8 @@ from sys import exit
 import argparse
 
 
-# The collection of all the parameters and thier default setting
-# The string MUST is used as a place holder, which means the parameter is required
+# The collection of all the parameters and their default settings
+# The string MUST is used as the place holder, which means the parameter is required
 
 par_GAML = {'command'           :   'GAML',
             'charge_path'       :   None,
@@ -35,12 +35,12 @@ par_GAML = {'command'           :   'GAML',
             'bool_nozero'       :   True,
             'pn_limit'          :   None,
             'threshold'         :   1.0,
-            'ratio'             :   '7:2:1',
-            'fname'             :   'ML_chargeRandomGen',
+            'ratio'             :   '0.7:0.2:0.1',  #ML:AV:MU
+            'fname'             :   'ChargeRandomGen',
             }
 
 par_charge_gen_scheme = {'command'        :   'charge_gen_scheme',
-                         'charge_path'    :   'MUST',
+                         'charge_path'    :   None,
                          'symmetry_list'  :   None,
                          'counter_list'   :   None,
                          'offset_list'    :   None,
@@ -272,7 +272,7 @@ def pro_settingfile(settingfile):
         if infile[i][0] == 'command':
             ls.append(infile[i])
             j = i + 1
-            while j < len(infile) and infile[j][0] != 'command':       
+            while j < len(infile) and infile[j][0] != 'command':
                 ls.append(infile[j])
                 j += 1
  
@@ -345,11 +345,11 @@ def pro_argparse():
     sub_2.add_argument('-sl','--symmetry_list',nargs='+', help='symmetry_list, a list contains chemical equivalent information \
                         of the system, default is None')
     sub_2.add_argument('-ol','--offset_list',nargs='+',help='the two offsets in it have to be uniquely and properly defined, \
-                        default is None.')
+                        default is None')
     sub_2.add_argument('--offset_nm',nargs='+',help='the attemption numbers to generate charge falling within input charge range, \
-                        it is used to fit charge constrains, it is valid only when symmetry_list is defined, default is 5.')
+                        it is used to fit charge constrains, it is valid only when symmetry_list is defined, default is 5')
     sub_2.add_argument('-cl','--counter_list',nargs='+',help='counter_list,a list showing the sum of the group is zero')
-    sub_2.add_argument('-nu','--bool_neutral',help='bool, force the final calculated value scaled from 1 or not, default is True')
+    sub_2.add_argument('-nu','--bool_neutral',help='bool, force the final calculated value scaled from 1 or not, default is False')
     sub_2.add_argument('-nz','--bool_nozero',help='bool, do not allow 0 exist in the final result or not, default is True')
     sub_2.add_argument('-q','--pn_limit',nargs='+',help='bool, to define the value range, whether positive or negative, default is None')
     sub_2.add_argument('-nm','--gennm',help='output file numbers, default is 5. This number is always no \
@@ -358,7 +358,7 @@ def pro_argparse():
     sub_2.add_argument('-tc','--total_charge',help='default is 1.0')
     sub_2.add_argument('-b','--in_keyword',help='the mark of the start in the input file')
     sub_2.add_argument('-o','--fname',help='output file name, default is ChargeRandomGen')
-    sub_2.add_argument('-lim','--threshold',help='positive number, set the limit for each entries value, default is 1')
+    sub_2.add_argument('-lim','--threshold',help='positive number, set the limit for each entries value, default is 1.0')
 
     
     sub_3 = subparser.add_parser('file_gen_gaussian',help='To generate gaussian_input file in selected range')
@@ -397,25 +397,25 @@ def pro_argparse():
     sub_5.add_argument('-sl','--symmetry_list',nargs='+', help='symmetry_list, a list contains chemical equivalent information \
                         of the system, default is None')
     sub_5.add_argument('-ol','--offset_list',nargs='+',help='the two offsets in it have to be uniquely and properly defined, \
-                        default is None.')
+                        default is None')
     sub_5.add_argument('--offset_nm',nargs='+',help='the attemption numbers to generate charge falling within input charge range, \
-                        it is used to fit charge constrains, it is valid only when symmetry_list is defined, default is 5.')
+                        it is used to fit charge constrains, it is valid only when symmetry_list is defined, default is 5')
     sub_5.add_argument('-cl','--counter_list',nargs='+',help='counter_list,a list showing the sum of the group is zero')
-    sub_5.add_argument('-nu','--bool_neutral',help='bool, force the final calculated value scaled from 1 or not, default is True')
+    sub_5.add_argument('-nu','--bool_neutral',help='bool, force the final calculated value scaled from 1 or not, default is False')
     sub_5.add_argument('-nz','--bool_nozero',help='bool, do not allow 0 exist in the final result or not, default is True')
     sub_5.add_argument('-q','--pn_limit',nargs='+',help='bool, to define the value range, whether positive or negative, default is None')
-    sub_5.add_argument('-lim','--threshold',help='positive number, set the limit for each entries value, default is 1')
+    sub_5.add_argument('-lim','--threshold',help='positive number, set the limit for each entries value, default is 1.0')
     sub_5.add_argument('-nm','--gennm',help='output file numbers, default is 5, This number is always no bigger than the final \
                         processed frames')
     sub_5.add_argument('-ro','--ratio',help='Ratio among Cross-over to Average to Mutation. The number of pair generations of \
-                        normal charge range is always equal to number of modified charge range, default is 7:2:1',nargs='+')
+                        normal charge range is always equal to number of modified charge range, default is 0.7:0.2:0.1',nargs='+')
     sub_5.add_argument('-d','--error_tolerance',help='default is 0.8')
     sub_5.add_argument('-nr','--nmround',help='decimal round number, positive integer, default is 2')
     sub_5.add_argument('-abs','--bool_abscomp',help='default is False, use the absolute value or not')
     sub_5.add_argument('-ex','--charge_extend_by',help='default is 0.3, used to change the charge range bound')
     sub_5.add_argument('-e','--cut_keyword',help='the mark of the end in the input file, default is MAE')
     sub_5.add_argument('-tc','--total_charge',help='default is 1.0')
-    sub_5.add_argument('-o','--fname',help='output file name, default is ML_chargeRandomGen')
+    sub_5.add_argument('-o','--fname',help='output file name, default is ChargeRandomGen')
 
 
     sub_6 = subparser.add_parser('fss_analysis',help='To start Feature Statistical Selection Analysis')
@@ -486,6 +486,7 @@ def pro_argparse():
         line = ''
         for i in fgetdict['atomtype_list']: line += i
         stmp = line.replace(',',' ').replace('[','[ ').replace(']',' ]').strip()
+        stmp = stmp.replace('"',' ').replace("'",' ').replace(';',' ')
         bo = False
         if len(stmp) < 4:
             bo = True
@@ -510,89 +511,48 @@ def pro_argparse():
 
 
 
-def _cmd_run(fdict):
+def cmd_run(fdict):
     """This is the combined method to actually run the command, which by default assumes the input directory
        has been properly processed. For any future update, this method should also be updated."""
 
-    if fdict['command'].lower() == 'charge_gen_range':
-        fp = Charge_gen_range(**fdict)
-        if fp.log['nice']:
-            fp.file_print()
+    cmd = fdict['command'].lower()
+    if  cmd in ['charge_gen_range','charge_gen_scheme','file_gen_gromacstop','gaml']:
+        if cmd == 'charge_gen_range':
+            fp = Charge_gen_range(**fdict)
+        elif cmd == 'charge_gen_scheme':
+            fp = Charge_gen_scheme(**fdict)
+        elif cmd == 'file_gen_gromacstop':
+            fp = File_gen_gromacstop(**fdict)
         else:
-            print(fp.log['info'])
-            exit()
-
-    elif fdict['command'].lower() == 'charge_gen_scheme':
-        fp = Charge_gen_scheme(**fdict)
-        if fp.log['nice']:
-            fp.file_print()
-        else:
-            print(fp.log['info'])
-            exit()
-
-    elif fdict['command'].lower() == 'file_gen_gaussian':
+            fp = GAML_main(**fdict)
+        if fp.log['nice']: fp.run()
+    elif cmd == 'file_gen_gaussian':
         fp = File_gen_gaussian(**fdict)
-        if fp.log['nice']:
-            fp.file_print()
-        else:
-            print(fp.log['info'])
-            exit()
-
-    elif fdict['command'].lower() == 'file_gen_gromacstop':
-        fp = File_gen_gromacstop(**fdict)
-        if fp.log['nice']:
-            fp.file_print()
-        else:
-            print(fp.log['info'])
-            exit()
-
-    elif fdict['command'].lower() == 'gaml':
-        fp = GAML_main(**fdict)
-        if fp.log['nice']:
-            fp.file_print()
-        else:
-            print(fp.log['info'])
-            exit()
-
-    elif fdict['command'].lower() == 'fss_analysis':
+    elif cmd == 'fss_analysis':
         fp = FSS_analysis(**fdict)
-        if fp.log['nice']:
-            fp.file_print()
-        else:
-            print(fp.log['info'])
-            exit()
-
     elif fdict['command'].lower() == 'file_gen_mdpotential':
         fp = File_gen_mdpotential(**fdict)
-        if fp.log['nice']:
-            fp.file_print()
-        else:
-            print(fp.log['info'])
-            exit()
-
     elif fdict['command'].lower() == 'gaml_autotrain':
         fp = GAML_autotrain(**fdict)
-        if fp.log['nice']:
-            fp.file_print()
-        else:
-            print(fp.log['info'])
-            exit()
     else:
         # Normally, this information will never be output. However, it is still defined
         print('Error: no command is executed')
         exit()
-
-    return 1
+    
+    if fp.log['nice']:
+        fp.file_print()
+    else:
+        print(fp.log['info'])
+        exit()
 
 
 def run(fdict):
     """By default, the fdict either can be a list which contains many dictionaries, or a dictionary"""
     
     if isinstance(fdict,list):
-        for i in fdict:
-            dump_value = _cmd_run(i)
+        for i in fdict: cmd_run(i)
     else:
-        dump_value = _cmd_run(fdict)
+        cmd_run(fdict)
 
 
 def cmd_line_runner():
@@ -611,8 +571,8 @@ def cmd_line_runner():
             fdict = pro_settingfile(sys.argv[1])
             
         run(fdict)
-           
 
 if __name__ == '__main__':
     cmd_line_runner()
-    
+
+

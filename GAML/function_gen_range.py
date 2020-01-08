@@ -1,4 +1,4 @@
-def function_gen_range(rlist,percent=0.8):
+def func_gen_range(rlist,percent=0.8):
     """
     For an integer 1D list, start from the mode number, find
     a surrounding range, which contains data points no less
@@ -10,6 +10,7 @@ def function_gen_range(rlist,percent=0.8):
     
     import random
     
+    log = {'nice':True,}
     try:
         if not isinstance(rlist,list):
             raise TypeError
@@ -21,11 +22,10 @@ def function_gen_range(rlist,percent=0.8):
         if percent <= 0 or percent > 1:
             raise ValueError
     except (ValueError, TypeError):
-        print('Error: the input list has to be an 1D integer list')
-        print('Error: the range of percent has to between 0 to 1\n')
-        print('Error rlist: ',rlist)
-        print('Error percent :',percent)
-        return 0,0
+        log['info'] = 'Error: the input list has to be an 1D integer list\n' + \
+                      'Error: the range of percent has to between 0 to 1\n'
+        log['nice'] = False
+        return log,0,0
         
     lth = len(rlist)
     rmax = max(rlist)   
@@ -92,5 +92,5 @@ def function_gen_range(rlist,percent=0.8):
         ndxmin = chooselist[choose][0]
         ndxmax = chooselist[choose][1]
 
-    return ndxmin,ndxmax
+    return log,ndxmin,ndxmax
 

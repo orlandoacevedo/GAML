@@ -1,6 +1,5 @@
-from GAML.functions import file_size_check, file_gen_new,function_roundoff_error, \
-                     function_pro_pn_limit
-from GAML.function_prolist import Pro_list
+from GAML.functions import file_size_check, file_gen_new, func_roundoff_error, func_pro_pn_limit
+from GAML.function_prolist import Prolist
 import random
 
 class Charge_gen_scheme(object):
@@ -16,7 +15,7 @@ class Charge_gen_scheme(object):
                     raise ValueError
             except ValueError:
                 self.log['nice'] = False
-                self.log['info'] =  'Error: the parameter gennm has to be a positive integer'
+                self.log['info'] = 'Error: the parameter gennm has to be a positive integer'
                 return
         else:
             self.gennm = 5
@@ -47,21 +46,35 @@ class Charge_gen_scheme(object):
             
 
         if 'fname' in kwargs and kwargs['fname'] is not None:
-            self.fname = kwargs['fname']
+            if isinstance(kwargs['fname'],str):
+                if len(kwargs['fname'].split()) != 0:
+                    self.fname = kwargs['fname']
+                else:
+                    self.fname = 'ChargeRandomGen'
+            else:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: parameter fname is not correctly defined'
         else:
             self.fname = 'ChargeRandomGen'
             
 
         if 'in_keyword' in kwargs and kwargs['in_keyword'] is not None:
-            self.in_keyword = kwargs['in_keyword']
+            if isinstance(kwargs['in_keyword'],str):
+                if len(kwargs['in_keyword'].split()) != 0:
+                    self.in_keyword = kwargs['in_keyword']
+                else:
+                    self.in_keyword = 'ATOM'
+            else:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: parameter in_keyword is not correctly defined'
         else:
             self.in_keyword = 'ATOM'
 
 
         if 'bool_neutral' in kwargs and kwargs['bool_neutral'] is not None:
-            self.bool_neutral = False if (kwargs['bool_neutral']is False) else True
+            self.bool_neutral = True if (kwargs['bool_neutral'] is True) else False
         else:
-            self.bool_neutral = True
+            self.bool_neutral = False
 
 
         if 'bool_nozero' in kwargs and kwargs['bool_nozero'] is not None:
@@ -71,22 +84,34 @@ class Charge_gen_scheme(object):
 
 
         if 'pn_limit' in kwargs and kwargs['pn_limit'] is not None:
+            bo = False
             if isinstance(kwargs['pn_limit'],list):
                 self.pn_limit = kwargs['pn_limit']
+                for i in self.pn_limit:
+                    if ( not isinstance(i,list) ) or len(i) != 2 or ( not isinstance(i[0],int) ) or \
+                        ( i[1] not in ['p','n'] ):
+                        bo = True
+                        break
             elif isinstance(kwargs['pn_limit'],str):
                 if len(kwargs['pn_limit']) == 0 or len(kwargs['pn_limit'].split()) == 0:
                     self.pn_limit = []
                 else:
-                    self.file_line_pn_limit = kwargs['pn_limit']
-                    log, self.pn_limit = function_pro_pn_limit(kwargs['pn_limit'],False)
-                    if not log['nice']:
-                        self.log['nice'] = False
-                        self.log['info'] = log['info']
-                        return                    
+                    self.log, plist = func_pro_pn_limit(kwargs['pn_limit'],bool_repeats=False)
+                    if not self.log['nice']: return
+                    # take care of index starting number is not from 0
+                    # double check: make sure no negative values
+                    self.pn_limit = []
+                    for i in plist:
+                        if i[0] - 1 < 0:
+                            bo = True
+                            break
+                        self.pn_limit.append([i[0]-1,i[1]])
             else:
+                bo = True
+            if bo:
                 self.log['nice'] = False
                 self.log['info'] = 'Error: the parameter pn_limit is not correctly defined\n' + \
-                                   '     : ',kwargs['pn_limit']
+                                   '     : {:}'.format(kwargs['pn_limit'])
                 return
         else:
             self.pn_limit = []
@@ -102,7 +127,7 @@ class Charge_gen_scheme(object):
                 self.log['info'] = 'Error: the parameter threshold has to be greater than 0.3'
                 return 
         else:
-            self.threshold = 1.0
+            self.threshold = 0.8
 
 
         if 'offset_nm' in kwargs and kwargs['offset_nm'] is not None:
@@ -117,135 +142,165 @@ class Charge_gen_scheme(object):
         else:
             self.offset_nm = 5
 
-        if self.total_charge == 0:
-            self.bool_neutral = False
+        if self.total_charge == 0: self.bool_neutral = False
 
-        if self.bool_neutral and self.nmround < 3:
+        if self.bool_neutral and self.nmround < 2:
             self.log['nice'] = False
             self.log['info'] = 'Error: When bool_neutral is set to True, the nmround should be not less than 2'
             return 
 
 
-        if 'symmetry_list' in kwargs and kwargs['symmetry_list'] is not None:
-            if isinstance(kwargs['symmetry_list'],list):
-                self.symmetry_list = None if len(kwargs['symmetry_list']) == 0 else kwargs['symmetry_list']
-            else:
-                self.log['nice'] = False
-                self.log['info'] = 'Error: the parameter symmetry_list has to be a list'
-                return
-        else:
-            self.symmetry_list = None
-
-
-        if 'counter_list' in kwargs and kwargs['counter_list'] is not None:
-            if isinstance(kwargs['counter_list'],list):
-                self.counter_list = None if len(kwargs['counter_list']) == 0 else kwargs['counter_list']
-            else:
-                self.log['nice'] = False
-                self.log['info'] = 'Error: the parameter counter_list has to be a list'
-                return
-        else:
-            self.counter_list = None
-
-        if 'offset_list' in kwargs:
-            if kwargs['offset_list'] is None or len(kwargs['offset_list']) == 0:
-                offset_list = None
-            else:
-                offset_list = kwargs['offset_list']
-        else:
-            self.counter_list = None
-            
-
         if 'charge_path' in kwargs and kwargs['charge_path'] is not None:
             self.charge_path = kwargs['charge_path']
-            self.charge_list = self._f_pro_charge_path(kwargs['charge_path'])
+            self.charge_list = self.prochargepath(kwargs['charge_path'])
             if not self.log['nice']: return
         else:
-            self.log['nice'] = False
-            self.log['info'] = 'Error: the parameter charge_path is missing'
-            return
+            self.charge_path = None
+            self.charge_list = []
 
-        rmax = 0
-        if len(self.pn_limit) != 0:
-            ls = [i[0] for i in self.pn_limit]
-            rmax = max(rmax,max(ls))
-        if rmax > len(self.charge_list):
-            self.log['nice'] = False
-            self.log['info'] = 'Error: some entries in parameter pn_limit are out of the index\n' + \
-                               '     : the biggest number can be defined is ' + str(len(charge_list)) + '\n' + \
-                               '     : however, the number in pn_limit is ' + str(rmax)
-            return
-
-
-        
-        
-        if (self.symmetry_list is None) and (self.counter_list is None):
-            self.chargepair = self.gen_chargepair_file()
-        else:          
-            self.prolist = Pro_list(symmetry_list=self.symmetry_list,counter_list=self.counter_list,
-                                    offset_list=offset_list)
-            if not self.prolist.log['nice']:
+        if len(self.charge_list) != 0 and len(self.pn_limit) != 0:
+            if max([i[0] for i in self.pn_limit]) > len(self.charge_list):
                 self.log['nice'] = False
-                self.log['nice'] = self.prolist.log['info']
-                return
-            
-            if len(self.prolist.symmetry_list) == 2 and len(self.prolist.reflist) != 0 and self.total_charge != 0:
-                self.log['nice'] = False
-                self.log['info'] = 'Error: if only two parameters are in perturbation and they are set to counter \n' + \
-                                   'Error: then the total_charge has to be equal to zero'
+                self.log['info'] = 'Error: some entries in parameter pn_limit are out of the index\n' + \
+                                   '     : the number of charge_path is ' + str(len(charge_list)) + '\n' + \
+                                   '     : however, the number of pn_limit is ' + str(max(self.pn_limit))
                 return
 
-            self.reflist = self.prolist.reflist
 
-            if len(self.prolist.symmetry_list) == 0:
-                rmax = [max(i[0],i[2]) for i in self.prolist.reflist]
-                if len(self.charge_list) < 2*len(rmax) or len(self.charge_list) < max(rmax):
+        symmetry_list = kwargs['symmetry_list'] if 'symmetry_list' in kwargs else None
+        counter_list = kwargs['counter_list'] if 'counter_list' in kwargs else None
+        offset_list = kwargs['offset_list'] if 'offset_list' in kwargs else None
+
+        self.prolist = Prolist(symmetry_list=symmetry_list,counter_list=counter_list,offset_list=offset_list)
+        if not self.prolist.log['nice']:
+            self.log['nice'] = False
+            self.log['info'] = self.prolist.log['info']
+            return
+
+        self.symmetry_list = self.prolist.symmetry_list
+        self.reflist = self.prolist.reflist
+
+        if len(self.symmetry_list) == 0 and len(self.charge_list) == 0:
+            self.log['nice'] = False
+            self.log['info'] = 'Error: neither symmetry_list nor charge_path is defined!'
+            return
+
+        if len(self.symmetry_list) == 0:
+            self.symmetry_list = list(range(len(self.charge_list)))
+        elif len(self.symmetry_list) == 2 and len(self.reflist) != 0 and self.total_charge != 0:
+            self.log['nice'] = False
+            self.log['info'] = 'Error: if only two parameters are in perturbation and they are set to counter \n' + \
+                               '     : then the total_charge has to be equal to zero'
+            return
+
+        if len(self.charge_list) == 0:
+            for i in range(self.prolist.symmetry_length):
+                self.charge_list.append([-self.threshold/2,self.threshold/2])
+        elif self.prolist.symmetry_length != 0 and len(self.charge_list) < self.prolist.symmetry_length:
+            self.log['nice'] = False
+            self.log['info'] = 'Error: the charge_path and symmetry_list are not corresponded'
+            return
+        
+
+        ndxreflist = [i[0] for i in self.reflist] + [i[2] for i in self.reflist]
+        if len(ndxreflist) != 0 and len(self.charge_list) < max(ndxreflist):
+            self.log['nice'] = False
+            self.log['info'] = 'Error: the charge_path and counter_list are not corresponded'
+            return
+
+        ndxpnlist = [i[0] for i in self.pn_limit]
+        vulist = [i[1] for i in self.pn_limit]
+        if len(ndxpnlist) != 0 and self.prolist.symmetry_length < max(ndxpnlist):
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the symmetry_list and pn_limit are not corresponded'
+                return
+        for i in self.reflist:
+            if (i[0] in ndxpnlist) and (i[2] in ndxpnlist):
+                if vulist[i[0]] == vulist[i[2]]:
                     self.log['nice'] = False
-                    self.log['info'] = 'Error: the charge_path and counter_list are not corresponded'
+                    self.log['info'] = 'Error: the pn_limit is in conflict with counter_list\n' + \
+                                        '     : they have to be one in positive and the other in negative'
                     return
-                self.chargepair = self.gen_chargepair_counter()
-                
+        
+        # softly update self.prolist.offset_ndx_list
+        if len(self.prolist.offset_ndx_list) == 2:
+            if self.prolist.offset_ndx_list[1] in ndxreflist or self.prolist.offset_ndx_list[1] in ndxpnlist:
+                self.prolist.offset_ndx_list = [self.prolist.offset_ndx_list[0],]
+                self.prolist.offset_1_ndx = 0
+                self.prolist.bool_offset_1 = False
+        if len(self.prolist.offset_ndx_list) == 1:
+            if self.prolist.offset_ndx_list[0] in ndxreflist or self.prolist.offset_ndx_list[0] in ndxpnlist:
+                self.prolist.offset_ndx_list = []
+                self.prolist.offset_0_ndx = 0
+                self.prolist.bool_offset_0 = False
+
+        # pre-process self.charge_list: make sure index(0) < index(1)
+        self.prochargelist()
+
+
+
+    def prochargelist(self):
+        """Parameter:
+              self.charge_list; self.bool_neutral; self.nmround; self.threshold
+           Result:
+              return a charge_list meeting the needed low-high bound"""
+         
+        if self.bool_neutral:
+            calc_nmround = self.nmround - 1
+        else:
+            calc_nmround = self.nmround
+        
+        multibase = 10 ** calc_nmround
+        for i in range(len(self.charge_list)):
+            chmin = self.charge_list[i][0]
+            chmax = self.charge_list[i][1]
+            if chmax < chmin: chmax, chmin = chmin, chmax
+            if chmin > 0:
+                chmin = chmin if chmin < self.threshold else self.threshold
             else:
-                self.symmetry_list = self.prolist.symmetry_list
-                self.offset_list = self.prolist.offset_list
-                
-                if len(self.charge_list) < self.prolist.symmetry_length:
-                    self.log['nice'] = False
-                    self.log['info'] = 'Error: the charge_path and symmetry_list are not corresponded'
-                    return
-
-                if len(self.symmetry_list) <= 4 and len(self.prolist.reflist) != 0:    
-                    self.chargepair = self.gen_chargepair_counter()
+                chmin = chmin if chmin > -self.threshold else -self.threshold
+            if chmax > 0:
+                chmax = chmax if chmax < self.threshold else self.threshold
+            else:
+                chmax = chmax if chmax > -self.threshold else -self.threshold
+            # from debug; take care of round off error
+            if chmax-chmin < 20.0/multibase:
+                tmp = chmax + 20.0 / multibase
+                if tmp > self.threshold:
+                    chmin = chmin - 20.0 / multibase
                 else:
-                    self.chargepair = self.gen_chargepair_symmetry()
+                    chmax = tmp
+
+            self.charge_list[i][0] = chmin
+            self.charge_list[i][1] = chmax
 
 
-    def _f_pro_charge_path(self,charge_path):
+    def prochargepath(self,charge_path):
+        """Parameter:
+                charge_path, with defined chargeRange, either can be a 2D list, or a string file name
+           Result:
+                charge_list"""
         
         if isinstance(charge_path,list):
             # change the list name
             charge_list = charge_path
             if len(charge_path) == 0:
-                print('Error: it seems the charge_path is a list, however, its length cannot be zero')
-                exit()
+                return []
 
             for i in charge_list:
-                if isinstance(i,list) and len(i) == 2 and (isinstance(i[0],int) or isinstance(i[0],float)) \
-                   and (isinstance(i[1],int) or isinstance(i[1],float)):
+                if isinstance(i,list) and len(i) == 2 and isinstance(i[0],(float,int)) and isinstance(i[1],(float,int)):
                     pass
                 else:
                     self.log['nice'] = False
                     self.log['info'] = 'Error: the charge_path has to be a 2D nested number list\n' + \
-                                           '       and its each sublist only contains two indices'
-                    return 1        
-                
+                                       '       and its each sublist only contains two indices'
+                    return []
         elif isinstance(charge_path,str):
-            
-            log = file_size_check(charge_path,fsize=100)
-            if not log['nice']:
-                self.log['nice'] = False
-                self.log['info'] = log['info']
-                return 1
+            if len(charge_path.split()) == 0:
+                return []
+
+            self.log = file_size_check(charge_path,fsize=100)
+            if not self.log['nice']: return []
             
             charge_list = []
             with open(charge_path,mode='rt') as f:
@@ -255,214 +310,141 @@ class Charge_gen_scheme(object):
                         break
                     else:
                         ltmp = line[:line.find('#')].split()
-                        if len(ltmp) != 0 and ltmp[0] == self.in_keyword:
-                            ls = []
-                            ls.append(float(ltmp[2]))
-                            ls.append(float(ltmp[3]))
-                            charge_list.append(ls)               
+                        bo = False
+                        if len(ltmp) == 0:
+                            continue
+                        elif len(ltmp) == 4 and ltmp[0] == self.in_keyword:
+                            try:
+                                t1 = float(ltmp[2])
+                                t2 = float(ltmp[3])
+                                charge_list.append([t1,t2])
+                            except ValueError:
+                                bo = True
+                        else:
+                            bo = True
+                        
+                        if bo:
+                            self.log['nice'] = False
+                            self.log['info'] = 'Error: Wrong for the input file, in line\n' + \
+                                               '     : %s' % line
+                            return []
         return charge_list
 
 
 
-    def gen_chargepair_file(self):
-        """Randomly generate charge_pairs based on the given input charge_file"""
+    def run(self,filterlist=[]):
+        """Randomly generate charge_piars based on the given charge range,
+           symmetry_list and counter_list with no any repeats in 2D filterlist
+           
+           Result:
+                self.chargepair with self-exclusive number of self.gennm pairs"""
 
-        self.counter_list = []
-        self.reflist = []
-
-        return self.gen_chargepair_counter()
-
-
-
-    def gen_chargepair_counter(self):
-        """Randomly generate charge_pairs based on the given charge range
-           and counter_list"""
-            
-        # make a copy of counter_list -> reflist
-        refcntlist = self.reflist[:]
-
-        refcntlist_lth = 2*len(refcntlist)
-        refcntlist_ndx = []
-        for i in refcntlist:
-            refcntlist_ndx.append(i[0])
-            refcntlist_ndx.append(i[2])
-        
         if self.bool_neutral:
             calc_total_charge = 1.0
             calc_nmround = self.nmround - 1
-        else:    
+        else:
             calc_total_charge = self.total_charge
             calc_nmround = self.nmround
 
+        pnlist = [self.symmetry_list[i[0]] for i in self.pn_limit]
+        vulist = [i[1] for i in self.pn_limit]
+
+        # make a SHALLOW copy of self.symmetry_list and remove self.reflist indices
+        copysymmetry = self.symmetry_list[:]
+        for i in self.reflist:
+            si = self.symmetry_list[i[0]]
+            sj = self.symmetry_list[i[2]]
+            # Find symmetry indices
+            for symi in copysymmetry:
+                if isinstance(symi,int) and isinstance(si,int) and symi == si:
+                    break
+                elif isinstance(symi,list) and isinstance(si,list) and symi == si:
+                    break
+            for symj in copysymmetry:
+                if isinstance(symj,int) and isinstance(sj,int) and symj == sj:
+                    break
+                elif isinstance(symj,list) and isinstance(sj,list) and symj == sj:
+                    break
+            # update
+            copysymmetry.remove(symi)
+            copysymmetry.remove(symj)
+
+        trynmcnt = 1
+        trynmtot = self.gennm * 100 if len(copysymmetry) > 1000 else 100000
         multibase = 10 ** calc_nmround
-        chargepair = []
-        while len(chargepair) < self.gennm:
+        self.chargepair = []
+        while len(self.chargepair) < self.gennm:
+
+            # add a condition avoid infinite looping
+            if trynmcnt > trynmtot:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the gennm is too big for pairs generating'
+                return self.chargepair
+            trynmcnt += 1
+
             totcharge = 0.0
             subcharp = []
-            reflist = list(range( len(self.charge_list)  ) )
-            while len(reflist) > refcntlist_lth:
+
+            # Take care of counter_list
+            for i in self.reflist:
+                chmin = self.charge_list[i[0]][0]
+                chmax = self.charge_list[i[0]][1]
+
+                chi = random.randrange(int(chmin*multibase),int(chmax*multibase))
+                chi = float(chi) / multibase
+                chj = 0 - chi * i[1] / i[3]
 
                 while True:
-                    ix = random.randrange( len(reflist) )
-                    ndx = reflist[ix]
-                    if ndx not in refcntlist_ndx:
-                        reflist.remove(ndx)
-                        break
+                    bo,chi,i[1],chj,i[3] = func_roundoff_error(chi,i[1],chj,i[3],nmround=calc_nmround)
 
-                chmin = self.charge_list[ndx][0] + 0.0
-                chmax = self.charge_list[ndx][1] + 0.0
+                    # apply self.bool_nozero
+                    if bo and self.bool_nozero and ( chi == 0 or chj == 0 ): bo = False
 
-                if chmax < chmin:
-                    t = chmax
-                    chmax = chmin
-                    chmin = t
-                elif chmax == chmin:
-                    chmax += 5.0/multibase
-
-                rch = random.randrange(int(chmin*multibase),int(chmax*multibase))
-                
-                lp = []
-                lp.append(ndx)
-                charget = round(float(rch)/multibase,calc_nmround)
-                totcharge =  totcharge + charget
-                lp.append(charget)
-                subcharp.append(lp)
-
-                   
-            for cnt in refcntlist:
-               
-                chmin = self.charge_list[cnt[0]][0] + 0.0
-                chmax = self.charge_list[cnt[0]][1] + 0.0
-                rch = random.randrange(int(chmin*multibase),int(chmax*multibase))
-
-                charget = float(rch) / multibase
-                charcnt = 0 - charget * cnt[1] / cnt[3]
-
-                lp = [cnt[0],]
-                lt = [cnt[2],]
-
-                # take care of the round-off-error
-                while True:
-                    bo,charget,getndx,charcnt,cntndx = function_roundoff_error(
-                                                        charget,cnt[1],charcnt,cnt[3],
-                                                        nmround=calc_nmround
-                                                        )
-                    # since it is a counter charge, get its opposite number
+                    # apply self.threshold
+                    if bo and abs(chi) > self.threshold:
+                        chi = chi - self.threshold if chi > 0 else chi - self.threshold
+                        chj = 0 - chi * i[1] / i[3]
+                        bo = False
+                    if bo and abs(chj) > self.threshold:
+                        chj = chj - self.threshold if chj > 0 else chj - self.threshold
+                        chi = 0 - chj * i[3] / i[1]
+                        bo = False
+                    
+                    # apply self.pn_limit
+                    if bo and ( symi in pnlist ):
+                        v = vulist[pnlist.index(symi)]
+                        if ( v == 'p' and chi <= 0 ) or ( v == 'n' and chi >= 0 ):
+                            chi = 0 - chi
+                            chj = 0 - chj
+                            bo = False
+                    if bo and ( symj in pnlist ):
+                        v = vulist[pnlist.index(symj)]
+                        if ( v == 'p' and chj <= 0 ) or ( v == 'n' and chj >= 0 ):
+                            chi = 0 - chi
+                            chj = 0 - chj
+                            bo = False
                     if bo:
-                        lp.append(charget)
-                        subcharp.append(lp)
-                        lt.append(charcnt)
-                        subcharp.append(lt)
+                        subcharp.append([symi,chi])
+                        subcharp.append([symj,chj])
                         break
-
-            # Now, apply the charge constrain
-            if round(totcharge - calc_total_charge, calc_nmround + 2) != 0:
-                # randomly choose a chargepair but not the counter-pair-charge
-                while True:
-                    j = random.randrange(len(self.charge_list))
-                    if j in refcntlist_ndx:
-                        continue
-
-                    cnt = 0
-                    while cnt < len(subcharp):
-                        if subcharp[cnt][0] == j:
-                            break
-                        cnt += 1
-
-                    chartmp = ( calc_total_charge - totcharge ) + subcharp[cnt][1]
-                    chartmp = round(chartmp,calc_nmround)
-
-                    err = chartmp + totcharge - calc_total_charge - subcharp[cnt][1]
-                    if round(err,calc_nmround+2) == 0:
-                        subcharp[cnt][1] = chartmp
-                        break
-
-            # adjust subcharp list to correspond to self.charge_list
-            ltmp = []
-            i = 0
-            while i < len(self.charge_list):
-                for j in subcharp:
-                    if j[0] == i:
-                        ltmp.append(j[1])
-                        break
-                i += 1
-
-
-            # apply the pn_limit, take care the python index starts at zero
-            bool_tmp_pn_limit = False
-            for i in self.pn_limit:
-                v = ltmp[i[0]-1]
-                if i[1] == 'p' and v < 0:
-                    bool_tmp_pn_limit = True
-                    break
-                elif i[1] == 'n' and v > 0:
-                    bool_tmp_pn_limit = True
-                    break
-                
-            if bool_tmp_pn_limit:
-                continue
             
+            # based on copysymmetry, calculate new offlist for self.prolist.offset_ndx_list
+            offlist = []
+            for i in self.prolist.offset_ndx_list:
+                t = self.symmetry_list[i]
+                offlist.append(copysymmetry.index(t))
 
-            # apply charge threshold
-            if max(abs(min(ltmp)),abs(max(ltmp))) <= self.threshold:
-                
-                if self.bool_neutral:
-                    ltmp = [round(i*self.total_charge,self.nmround) for i in ltmp]
-
-                if len(ltmp) == len(self.charge_list) and (self.bool_nozero or (not 0 in ltmp)):
-                    if not self._f_remove_repeats(chargepair,ltmp):
-                        chargepair.append(ltmp)
-                
-        return chargepair
-
-
-    
-    def gen_chargepair_symmetry(self):
-        """Randomly generate charge_piars based on the given charege range,
-           symmetry_list and counter_list"""
-       
-        # make a copy of counter_list -> reflist
-        refcntlist = self.prolist.reflist[:]
-
-        # this list is used only when len(refcntlist) is not zero
-        cmpreflist = []
-        for i in refcntlist:
-            cmpreflist.append(i[0])
-            cmpreflist.append(i[2])
-
-        if self.bool_neutral:
-            calc_total_charge = 1.0
-            calc_nmround = self.nmround - 1
-        else:    
-            calc_total_charge = self.total_charge
-            calc_nmround = self.nmround
-
-        multibase = 10 ** calc_nmround
-        chargepair = []   
-        while len(chargepair) < self.gennm:
-            totcharge = 0.0
-            subcharp = []
-            reflist = list(range( len(self.symmetry_list)  ) )
-            while len(reflist) > len(self.offset_list):
-
+            ndxlist = list(range(len(copysymmetry)))
+            while len(ndxlist) > len(offlist):
                 while True:
-                    ix = random.randrange( len(reflist) )
-                    refndx = reflist[ix]
-                    if refndx not in self.prolist.offset_ndx_list:
-                        ndx = self.symmetry_list[ refndx ]
-                        reflist.remove(refndx)
+                    ix = random.randrange( len(ndxlist) )
+                    refndx = ndxlist[ix]
+                    if refndx not in offlist:
+                        ndx = copysymmetry[refndx]
+                        # update ndxlist
+                        ndxlist.remove(refndx)
                         break
 
-                bool_counter = False   
-                for cmpndx in refcntlist:
-                    if refndx in (cmpndx[0],cmpndx[2]):
-                        if refndx == cmpndx[0]:
-                            bool_calcndx = True
-                        else:
-                            bool_calcndx = False
-                        bool_counter = True
-                        break
-                                       
                 if isinstance(ndx,int):
                     ndxlth = 1
                     j = ndx
@@ -470,67 +452,33 @@ class Charge_gen_scheme(object):
                     ndxlth = len(ndx)
                     ix = random.randrange(ndxlth)
                     j = ndx[ix]
-
-                chmin = self.charge_list[j][0] + 0.0
-                chmax = self.charge_list[j][1] + 0.0
-
-                if chmax < chmin:
-                    t = chmax
-                    chmax = chmin
-                    chmin = t
-                elif chmax == chmin:
-                    chmax += 5.0/multibase
-
-                rch = random.randrange(int(chmin*multibase),int(chmax*multibase))
                 
-                lp = []
-                lp.append(ndx)
-                charget = round(float(rch)/multibase,calc_nmround)
-              
-                # calculate counterpart charge
-                if bool_counter:
+                chmin = int( self.charge_list[j][0] * multibase )
+                chmax = int( self.charge_list[j][1] * multibase )
 
-                    lt = []
-                    if bool_calcndx:
-                        # update the reflist
-                        reflist.remove(cmpndx[2])
-                        lt.append(self.symmetry_list[cmpndx[2]])
-                        charcnt = 0 - charget * cmpndx[1] / cmpndx[3]
-                        getndx = cmpndx[1]
-                        cntndx = cmpndx[3]
-                    else:
-                        reflist.remove(cmpndx[0])
-                        lt.append(self.symmetry_list[cmpndx[0]])
-                        charcnt = 0 - charget * cmpndx[3] / cmpndx[1]
-                        getndx = cmpndx[3]
-                        cntndx = cmpndx[1]
-                        
-                    # take care of the round-off-error
-                    while True:
-                        bo,charget,getndx,charcnt,cntndx = function_roundoff_error(
-                                                            charget,getndx,charcnt,cntndx,
-                                                            nmround=calc_nmround
-                                                            )
-                        # since it is a counter charge, get its opposite number
-                        if bo:
-                            lt.append(charcnt)
-                            subcharp.append(lt)
-                            lp.append(charget)
-                            subcharp.append(lp)
-                            break
-                else:
-                    totcharge =  totcharge + charget * ndxlth
-                    lp.append(charget)
-                    subcharp.append(lp)  
+                while True:
+                    rch = random.randrange(chmin,chmax)
+                    
+                    # apply self.bool_nozero & self.pn_limit
+                    bo = True
+                    if self.bool_nozero and rch == 0: bo = False
+                    if bo and ndx in pnlist:
+                        t = vulist[pnlist.index(ndx)]
+                        if ( t == 'p' and rch <= 0 ) or ( t == 'n' and rch >= 0 ):
+                            bo = False
+                    if bo:
+                        charget = round(float(rch)/multibase,calc_nmround)
+                        subcharp.append([ndx,charget])
+                        # update totcharge
+                        totcharge += charget * ndxlth
+                        break
 
 
             # Now, take care of the offset_nm to apply the charge constrain
             # it is divided into three different situations, where when the length of self.offset_list
-            #   is equal to 0, 1 and 2
-
-            if len(self.offset_list) == 0 or len(self.offset_list) == 1:
-
-                if len(self.offset_list) == 1:
+            #   is equal to 0, 1 or 2
+            if len(self.prolist.offset_ndx_list) == 0 or len(self.prolist.offset_ndx_list) == 1:
+                if len(self.prolist.offset_ndx_list) == 1:
                     ndx = self.symmetry_list[self.prolist.offset_0_ndx]
                     if isinstance(ndx,int):
                         ndxlth = 1
@@ -540,59 +488,49 @@ class Charge_gen_scheme(object):
                         ix = random.randrange(ndxlth)
                         j = ndx[ix]
                     
-                    chmin = self.charge_list[j][0] + 0.0
-                    chmax = self.charge_list[j][1] + 0.0
+                    chmin = int( self.charge_list[j][0] * multibase )
+                    chmax = int( self.charge_list[j][1] * multibase )
 
-                    if chmax < chmin:
-                        t = chmax
-                        chmax = chmin
-                        chmin = t
-                    elif chmax == chmin:
-                        chmax += 5.0/multibase
-
-                    rch = random.randrange(int(chmin*multibase),int(chmax*multibase))
-                    rch = round(float(rch)/multibase,calc_nmround) 
-                    totcharge += rch * ndxlth
-                    
-                    lp = []
-                    lp.append(ndx)
-                    lp.append(rch)
-                    subcharp.append(lp)
-
-                if round(totcharge - calc_total_charge, calc_nmround + 2) != 0:
-                    # randomly choose a chargepair but not the counter-pair-charge
                     while True:
-                        j = random.randrange(len(self.symmetry_list))
-                        if j in cmpreflist:
-                            continue
-
-                        offsetndx = self.symmetry_list[j]
-                        if isinstance(offsetndx,int):
-                            offset_lth = 1
-                        else:
-                            offset_lth = len(offsetndx)
-
-                        cnt = 0
-                        while cnt < len(subcharp):
-                            if subcharp[cnt][0] == offsetndx:
-                                break
-                            cnt += 1
-
-                        chartmp = ( calc_total_charge - totcharge ) / offset_lth + subcharp[cnt][1]
-                        chartmp = round(chartmp,calc_nmround)
-
-                        err = chartmp*offset_lth + totcharge - calc_total_charge - subcharp[cnt][1]*offset_lth
-                        if round(err,calc_nmround+2) == 0:
-                            subcharp[cnt][1] = chartmp
+                        rch = random.randrange(chmin,chmax)
+                        rch = round(float(rch)/multibase,calc_nmround)
+                        # apply self.bool_nozero & self.pn_limit
+                        bo = True
+                        if self.bool_nozero and rch == 0: bo = False
+                        if bo and ndx in pnlist:
+                            t = vulist[pnlist.index(ndx)]
+                            if ( t == 'p' and rch <= 0 ) or ( t == 'n' and rch >= 0 ):
+                                bo = False
+                        if bo:
+                            totcharge += rch * ndxlth
+                            subcharp.append([ndx,rch])
                             break
+                
+                if round(totcharge - calc_total_charge, calc_nmround + 2) != 0:
+                    # randomly choose a chargepair but not the counter-pair-charge nor pnlist
+                    while True:
+                        j = random.randrange(len(copysymmetry))
+                        offsetndx = copysymmetry[j]
+                        if offsetndx not in pnlist:
+                            offset_lth = 1 if isinstance(offsetndx,int) else len(offsetndx)
+                            break
+
+                    cnt = 0
+                    while cnt < len(subcharp):
+                        if subcharp[cnt][0] == offsetndx: break
+                        cnt += 1
+
+                    chartmp = ( calc_total_charge - totcharge ) / offset_lth + subcharp[cnt][1]
+                    chartmp = round(chartmp,calc_nmround)
+                    subcharp[cnt][1] = chartmp
             else:
-                bool_charge_index = True
                 subcharsum = 0.0
+                bool_charge_index = True
                 for dump in range(self.offset_nm):
                     offset_totcharge = totcharge
                     
+                    ndx = self.symmetry_list[ self.prolist.offset_1_ndx ]
                     if self.prolist.bool_offset_1:
-                        ndx = self.symmetry_list[ self.prolist.offset_1_ndx ]
                         ndxlth_1 = len(ndx)
                         ix = random.randrange(ndxlth_1)
                         j = ndx[ix]
@@ -600,23 +538,27 @@ class Charge_gen_scheme(object):
                         ndxlth_1 = 1
                         j = self.symmetry_list[ self.prolist.offset_1_ndx ]
 
-                    chmin = self.charge_list[j][0] + 0.0
-                    chmax = self.charge_list[j][1] + 0.0
-
-                    if chmax < chmin:
-                        t = chmax
-                        chmax = chmin
-                        chmin = t
-                    elif chmax == chmin:
-                        chmax += 5.0/multibase
-
-                    genrch = random.randrange(int(chmin*multibase),int(chmax*multibase))
-                    genrch = round(float(genrch) / multibase,calc_nmround)
+                    chmin = int( self.charge_list[j][0] * multibase )
+                    chmax = int( self.charge_list[j][1] * multibase )
+                    
+                    while True:
+                        genrch = random.randrange(chmin,chmax)
+                        genrch = round(float(genrch)/multibase,calc_nmround)
+                        # apply self.bool_nozero & self.pn_limit
+                        bo = True
+                        if self.bool_nozero and genrch == 0: bo = False
+                        if bo and ndx in pnlist:
+                            t = vulist[pnlist.index(ndx)]
+                            if ( t == 'p' and genrch <= 0 ) or ( t == 'n' and genrch >= 0 ):
+                                bo = False
+                        if bo:
+                            break
+                    
                     subcharsum += genrch
                     offset_totcharge += genrch * ndxlth_1
 
+                    ndx = self.symmetry_list[ self.prolist.offset_0_ndx ]
                     if self.prolist.bool_offset_0:
-                        ndx = self.symmetry_list[ self.prolist.offset_0_ndx ]
                         ndxlth_0 = len(ndx)
                         ix = random.randrange(ndxlth_0)
                         j = ndx[ix]
@@ -624,105 +566,134 @@ class Charge_gen_scheme(object):
                         ndxlth_0 = 1
                         j = self.symmetry_list[ self.prolist.offset_0_ndx ]
 
-                    chmin = self.charge_list[j][0] + 0.0
-                    chmax = self.charge_list[j][1] + 0.0
-
-                    if chmax < chmin:
-                        t = chmax
-                        chmax = chmin
-                        chmin = t
-                    elif chmax == chmin:
-                        chmax += 5.0/multibase
-
+                    chmin = self.charge_list[j][0]
+                    chmax = self.charge_list[j][1]
                     rch = ( calc_total_charge - offset_totcharge ) / ndxlth_0
                     rch = round(rch,calc_nmround)
                     offset_totcharge += rch * ndxlth_0
 
-                    if rch >= chmin and rch <= chmax and \
-                       round(calc_total_charge - offset_totcharge,calc_nmround+2) == 0:
-                        lp = []
-                        lp.append( self.symmetry_list[ self.prolist.offset_1_ndx ] )
-                        lp.append( genrch )
-                        subcharp.append(lp)
+                    # apply self.bool_nozero & self.pn_limit
+                    bo = True
+                    if rch < chmin or rch > chmax: bo = False
+                    if round(calc_total_charge - offset_totcharge,calc_nmround+2) != 0: bo = False
+                    if bo and self.bool_nozero and rch == 0: bo = False
+                    if bo and ndx in pnlist:
+                        t = vulist[pnlist.index(ndx)]
+                        if ( t == 'p' and rch <= 0 ) or ( t == 'n' and rch >= 0 ):
+                            bo = False
+                    if bo:
+                        tmp = self.symmetry_list[ self.prolist.offset_1_ndx ]
+                        subcharp.append([tmp,genrch])
                         
-                        lp = []
-                        lp.append( self.symmetry_list[ self.prolist.offset_0_ndx ] )
-                        lp.append( rch )
-                        subcharp.append(lp)
-                        
+                        tmp = self.symmetry_list[ self.prolist.offset_0_ndx ]
+                        subcharp.append([tmp,rch])
+
                         bool_charge_index = False
                         break
-
-
+            
                 if bool_charge_index:
                     ndx_1 = self.symmetry_list[ self.prolist.offset_1_ndx ]
                     ndxlth_1 = len( ndx_1 ) if self.prolist.bool_offset_1 else 1
-
                     genrch = round(subcharsum/self.offset_nm,calc_nmround)
+
                     rtmp = calc_total_charge - totcharge - ( genrch * ndxlth_1 )
 
                     ndx_0 = self.symmetry_list[ self.prolist.offset_0_ndx ]
                     ndxlth_0 = len( ndx_0 ) if self.prolist.bool_offset_0 else 1
-
                     rch = round(rtmp / ndxlth_0,calc_nmround)
 
-                    err = rtmp - ( rch * ndxlth_0 )
-                    if round(err,calc_nmround+2) == 0:             
-                        lp = []
-                        lp.append( ndx_1 )
-                        lp.append( genrch )
-                        subcharp.append(lp)
-                            
-                        lp = [] 
-                        lp.append( ndx_0 )
-                        lp.append( rch )
-                        subcharp.append(lp)
-                    else:
-                        # start from the beginning, the new generation
-                        continue
+                    subcharp.append([ndx_1, genrch])
+                    subcharp.append([ndx_0, rch])
 
-                
             # adjust subcharp list to correspond to symmetry_list
-            ltmp = []
+            pair = []
             for i in self.symmetry_list:
                 for j in subcharp:
-                    if isinstance(i,int) and isinstance(j[0],int) and i == j[0]:
-                        ltmp.append(j[1])
+                    if ( isinstance(i,int) and isinstance(j[0],int) and i == j[0] ) or \
+                        ( isinstance(i,list) and isinstance(j[0],list) and i == j[0] ):
+                        pair.append(j[1])
                         break
-                    elif isinstance(i,list) and isinstance(j[0],list) and i == j[0]: 
-                        ltmp.append(j[1])
+            
+            # now, it comes to most annoying and time-consuming part
+            # again take care of self.threshold & self.pn_limit & self.bool_nozero
+            # Caution: the indices in self.reflist has to be ruled first
+            # the purpose is to squeeze generated values below self.threshold
+            ndxreflist = [i[0] for i in self.reflist] + [i[2] for i in self.reflist]
+            lglist = [1 if isinstance(i,int) else len(i) for i in self.symmetry_list]
+            ndxpnlist = [i[0] for i in self.pn_limit]
+            step = 1.0 / ( 10 ** calc_nmround )
+            bignm = max(int( self.threshold / step ), 5)
+            # in case of infinite loop, try certain times
+            boall = True
+            for dump in range(100):
+                for rt,rch in enumerate(pair):
+                    if ( rt not in ndxreflist) and ( abs(rch) > self.threshold ):
+                        boall = False
                         break
-
-
-            # apply the pn_limit, take care the python index starts at zero
-            bool_tmp_pn_limit = False
-            for i in self.pn_limit:
-                v = ltmp[i[0]-1]
-                if i[1] == 'p' and v < 0:
-                    bool_tmp_pn_limit = True
-                    break
-                elif i[1] == 'n' and v > 0:
-                    bool_tmp_pn_limit = True
-                    break
+                if boall: break
                 
-            if bool_tmp_pn_limit:
-                continue
+                # oppenent but not itself
+                while True:
+                    pt = random.randrange(len(pair))
+                    if ( pt not in ndxreflist ) and ( pt != rt ): break
+                    
+                ndx = lglist[rt]
+                ndy = lglist[pt]
+                pch = pair[pt]
 
+                # calculate least common multiple
+                if ndx < ndy: a, b = ndy, ndx
+                else:   a, b = ndx, ndy
+                v = a % b
+                while v != 0:
+                    a = b
+                    b = v
+                    v = a % b
+                s = ndx * ndy // b
 
-            # apply charge threshold
-            if max(abs(min(ltmp)),abs(max(ltmp))) <= self.threshold:
+                dt = random.randrange(1,bignm)
+                if rch > 0:
+                    tmp_rch = round(rch - dt * s / ndx * step, calc_nmround)
+                    tmp_pch = round(pch + dt * s / ndy * step, calc_nmround)
+                    # again self.bool_nozero
+                    if self.bool_nozero and ( tmp_rch == 0 or tmp_pch == 0 ):
+                        tmp_rch = round(rch - (dt-1) * s / ndx * step, calc_nmround)
+                        tmp_pch = round(pch + (dt-1) * s / ndy * step, calc_nmround)
+                else:
+                    tmp_rch = round(rch + dt * s / ndx * step, calc_nmround)
+                    tmp_pch = round(pch - dt * s / ndy * step, calc_nmround)
+                    # again self.bool_nozero
+                    if self.bool_nozero and ( tmp_rch == 0 or tmp_pch == 0 ):
+                        tmp_rch = round(rch + (dt+1) * s / ndx * step, calc_nmround)
+                        tmp_pch = round(pch - (dt+1) * s / ndy * step, calc_nmround)
+                # take care of overflow for self.pn_limit
+                bosub = True
+                if rt in ndxpnlist:
+                    rndx = ndxpnlist.index(rt)
+                    if ( vulist[rndx] == 'p' and tmp_rch < 0 ) or ( vulist[rndx] == 'n' and tmp_rch > 0 ): bosub = False
+                if bosub and ( pt in ndxpnlist ):
+                    pndx = ndxpnlist.index(pt)
+                    if ( vulist[pndx] == 'p' and tmp_pch < 0 ) or ( vulist[pndx] == 'n' and tmp_pch > 0 ): bosub = False
+                if bosub:
+                    pair[rt] = tmp_rch
+                    pair[pt] = tmp_pch
+                    boall = True
                 
-                if self.bool_neutral:
-                    ltmp = [round(i*self.total_charge,self.nmround) for i in ltmp]
-
-                if len(ltmp) == len(self.symmetry_list) and ((not self.bool_nozero) or (not 0 in ltmp)):
-                    if not self._f_remove_repeats(chargepair,ltmp):
-                        chargepair.append(ltmp)
-
-        return chargepair
+                # if errors happen, start from the beginning
+                if not boall: continue
 
 
-    def _f_remove_repeats(self,reflist,complist):
+            if self.bool_neutral:
+                pair = [round(i*self.total_charge,self.nmround) for i in pair]
+            
+            # self inspection
+            if not self.func_bool_repeats(self.chargepair,pair):
+                # filter inspection
+                if not self.func_bool_repeats(filterlist,pair):
+                    self.chargepair.append(pair)
+
+
+    def func_bool_repeats(self,reflist,complist):
         """For a 2D nested reflist, if 1D complist is in it, return True, else return False."""
 
         for i in reflist:
@@ -738,7 +709,6 @@ class Charge_gen_scheme(object):
                 return True
             
         return False
-            
 
 
     def file_print(self):
@@ -747,32 +717,34 @@ class Charge_gen_scheme(object):
         with open(fname,mode='wt') as f:
             f.write('# This is the randomly generated charge pairs based on charge_range_list \n\n')
 
-            if self.symmetry_list is not None:
+            if len(self.symmetry_list) != 0:
                 f.write('# The symmetry_list used is:\n')
                 f.write('#    {:s}\n\n'.format(self.prolist.file_line_symmetry))
-                if len(self.prolist.file_line_offset) != 0:
+                if len(self.prolist.offset_ndx_list) != 0:
                     f.write('# The offset_list used is:\n')
                     f.write('#    {:s}\n\n'.format(self.prolist.file_line_offset))
 
-            if (self.counter_list is not None) and len(self.counter_list) != 0:
+            if len(self.reflist) != 0:
                 f.write('# The counter_list used is:\n')
                 f.write('#   {:s}\n\n'.format(self.prolist.file_line_counter))
 
             if len(self.pn_limit) != 0:
+                tmp = [str(i[0]+1) + i[1] for i in self.pn_limit]
                 f.write('# The pn_limit used is:\n')
-                f.write('#   {:s}\n\n'.format(self.file_line_pn_limit))
+                f.write('#   {:s}\n\n'.format(str(tmp)))
                 
-            f.write('# The total_charge is: < {:} >\n\n'.format(self.total_charge))
-            f.write('# The bool_neutral is: < {:s} >\n\n'.format('ON' if self.bool_neutral else 'OFF'))
+            f.write('# The total_charge is: < {:} >\n'.format(self.total_charge))
+            f.write('# The bool_neutral is: < {:s} >\n'.format('ON' if self.bool_neutral else 'OFF'))
             f.write('# The bool_nozero is: < {:s} >\n\n'.format('ON' if self.bool_nozero else 'OFF'))
             
-            if isinstance(self.charge_path,str):
-                f.write('# The used charge_range file is:\n#    {:s}\n\n'.format(self.charge_path))
-
-            f.write('# For each entry, the charge_range is:\n\n')
+            if self.charge_path is None:
+                f.write('# The used charge_range file is NotDefined\n')
+            else:
+                f.write('# The used charge_range file is: < {:s} >\n'.format(self.charge_path))
+            f.write('# For each entry, the charge_range is:\n')
             j = 1
             for i in self.charge_list:
-                f.write('# ATOM  {:>3}    {:>8}    {:>8}\n'.format(j,i[0],i[1]))
+                f.write('#ATOM  {:>4}    {:>6}   {:>6}\n'.format(j,i[0],i[1]))
                 j += 1
 
             f.write('\n\n# The randomly generated charges are: \n\n')
@@ -783,4 +755,5 @@ class Charge_gen_scheme(object):
                     f.write('{:>7.3}'.format(j))
                 f.write('\n')
             f.write('\n\n')
-                
+
+

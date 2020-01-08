@@ -1,4 +1,4 @@
-﻿class Pro_list(object):
+﻿class Prolist(object):
     """
     This class is used to process symmetry_list and counter_list, the symmetry_list is a 2D integer
     list, while the counter_list either can be a 2D integer list or a 1D integer list. One of them
@@ -50,52 +50,53 @@
         """The final initiated parameters;
            Note: for any non-exist parameter, the length of return value is always zero
 
-           For symmetry_list;
-               self.symmetry_list, [self.symmetry_length], [self.file_line_symmetry], [self.bool_offset]
-               
-               For offset_list;
-                   self.file_line_offset
-                   self.offset_list, self.offset_ndx_list, self.bool_offset_0, self.offset_0_ndx,
-                   self.bool_offset_1, self.offset_1_ndx
-                   
+           Attributes:
+                self.file_line_symmetry; self.file_line_counter; self.file_line_offset
 
-           For counter_list;
-               self.reflist, [self.file_line_counter]"""
+                For symmetry_list;
+                   self.symmetry_list, self.symmetry_length
+
+                For offset_list;
+                    self.offset_list, self.offset_ndx_list, self.bool_offset_0, self.offset_0_ndx,
+                    self.bool_offset_1, self.offset_1_ndx
+
+                For counter_list;
+                    self.reflist    """
 
         self.log = {'nice':True,}
         
-        if symmetry_list is None:
-            pass
-        elif not isinstance(symmetry_list,list):
-            self.log['nice'] = False
-            self.log['info'] = 'Error: symmetry_list has to be a 2D list'
-            return
-        elif len(symmetry_list) == 0:
-            symmetry_list = None
+        symmetry_list = self._f_prolist(symmetry_list,'symmetry_list')
+        if not self.log['nice']: return
+        self.file_line_symmetry = str(symmetry_list)
 
-        if counter_list is None:
-            pass
-        elif not isinstance(counter_list,list):
-            self.log['nice'] = False
-            self.log['info'] = 'Error: the counter_list has to be a 2D list'
-            return
-        elif len(counter_list) == 0:
-            counter_list = None
+        offset_list = self._f_prolist(offset_list,'offset_list')
+        if not self.log['nice']: return
+        self.file_line_offset = str(offset_list)
 
-        if (symmetry_list is None) and (counter_list is None):
-            self.log['nice'] = False
-            self.log['info'] = 'Error: at least one of symmetry_list and counter_list has to be provided'
-            return
-        
-        if symmetry_list is None:
+        counter_list = self._f_prolist(counter_list,'counter_list')
+        if not self.log['nice']: return
+        self.file_line_counter = str(counter_list)
+
+        if len(symmetry_list) == 0 and len(counter_list) == 0:
             self.symmetry_list = []
+            self.symmetry_length = 0
+            self.offset_list = []
+            self.counter_list = []
+            self.reflist = []
+            return
+
+        if len(symmetry_list) == 0:
+            self.symmetry_list = []
+            self.symmetry_length = 0
             self.offset_list = []
             pro_reflist = self._f_pro_counter_list(counter_list)
             if not self.log['nice']: return
         else:
             self.symmetry_list,self.offset_list = self._f_pro_symmetry_list(symmetry_list,offset_list)
-            if not self.log['nice']: return
-            if counter_list is None:
+            if not self.log['nice']:
+                print(self.log['info'])
+                return
+            if len(counter_list) == 0:
                 pro_reflist = []
             else:
                 pro_counter_list = self._f_pro_counter_list(counter_list)
@@ -125,36 +126,58 @@
                         self.log['nice'] = False
                         self.log['info'] = 'Error: the offset_list is in conflict with counter_list'
                         return
-            
+        self.counter_list = [[i[0],i[2]] for i in self.reflist]
+
+
+    def _f_prolist(self,inlist,des='input list'):
+        """pre-process input list"""
+
+        bo = False
+        if inlist is None:
+            inlist = []
+        elif isinstance(inlist,str):
+            try:
+                inlist = inlist.replace('"',' ').replace("'",' ')
+                if len(inlist.split()) == 0:
+                    inlist = []
+                else:
+                    inlist = eval(inlist)
+                    if not isinstance(inlist,list): raise ValueError
+                    if len(inlist) == 0: inlist = []
+            except:
+                bo = True
+        elif not isinstance(inlist,list):
+            bo = True
+        
+        if bo:
+            self.log['nice'] = False
+            self.log['info'] = 'Error: {:} has to be a list'.format(des)
+
+        return inlist
+        
 
 
     def _f_pro_symmetry_list(self,symmetry_list,offset_list=None):
         """For this method, the final processed parameters are, pro_symmetry_list, pro_offset,
-           self.bool_offset, self.bool_offset_0, self.bool_offset_1, self.file_line_symmetry,
-           self.file_line_offset"""
+           self.bool_offset_0, self.bool_offset_1"""
 
-        self.bool_offset = False
-        self.file_line_offset = ''
-        if offset_list is not None:
-            self.bool_offset = True
-            if isinstance(offset_list,list):
-                if len(offset_list) == 0:
-                    self.bool_offset = False
-                elif len(offset_list) == 1 and isinstance(offset_list[0],int):
-                    self.file_line_offset += str(offset_list[0])
-                elif len(offset_list) == 2 and isinstance(offset_list[0],int) and \
-                     isinstance(offset_list[1],int) and offset_list[0] != offset_list[1]:
-                    self.file_line_offset += str(offset_list[0]) + '  ' + str(offset_list[1])
-                else:
-                    self.log['nice'] = False
-                    self.log['info'] = 'Error: offset_list has to be a 1D integer list\n' + \
-                                           '       the maximum number of its parameters is 2'
-                    return 0, 0
+
+        if offset_list is None:
+            offset_list = []
+        else:
+            if len(offset_list) == 0:
+                offset_list = []
+            elif len(offset_list) == 1 and isinstance(offset_list[0],int):
+                pass
+            elif len(offset_list) == 2 and isinstance(offset_list[0],int) and \
+                 isinstance(offset_list[1],int) and offset_list[0] != offset_list[1]:
+                pass
             else:
                 self.log['nice'] = False
-                self.log['info'] = 'Error: offset_list has to be a list'
+                self.log['info'] = 'Error: offset_list has to be a 1D integer list\n' + \
+                                   '       the maximum number of its parameters is 2'
                 return 0, 0
-                
+        
         rmax = 0
         lth = 0
         count = 0
@@ -164,7 +187,6 @@
         self.offset_0_ndx = 0
         self.offset_1_ndx = 0
         self.offset_ndx_list = []
-        self.file_line_symmetry = '[ '
         pro_symmetry_list = []
         pro_1D = []
         for i in symmetry_list:
@@ -175,49 +197,43 @@
                 lth += 1
                 pro_symmetry_list.append(i-1)
                 pro_1D.append(i)
-                self.file_line_symmetry += str(i) + ' '
-                if self.bool_offset:
-                    if len(offset_list) == 1:
-                        if offset_list[0] == i:
-                            self.offset_0_ndx = count
-                            self.offset_ndx_list.append(count)
-                    else:
-                        if offset_list[0] == i:
-                            self.offset_0_ndx = count
-                            self.offset_ndx_list.insert(0,count)
-                        elif offset_list[1] == i:
-                            self.offset_1_ndx = count
-                            self.offset_ndx_list.append(count)
+                if len(offset_list) == 1:
+                    if offset_list[0] == i:
+                        self.offset_0_ndx = count
+                        self.offset_ndx_list.append(count)
+                elif len(offset_list) == 2:
+                    if offset_list[0] == i:
+                        self.offset_0_ndx = count
+                        self.offset_ndx_list.insert(0,count)
+                    elif offset_list[1] == i:
+                        self.offset_1_ndx = count
+                        self.offset_ndx_list.append(count)
             elif isinstance(i,list):
                 ls = []
-                self.file_line_symmetry += '['
                 for j in i:
                     if isinstance(j,int):
                         ls.append(j-1)
                         pro_1D.append(j)
-                        self.file_line_symmetry += str(j) + ' '
-                        if self.bool_offset:
-                            if len(offset_list) == 1:
-                                if offset_list[0] == j:
-                                    self.bool_offset_0 = True
-                                    self.offset_0_ndx = count
-                                    self.offset_ndx_list.append(count)
-                            else:
-                                if offset_list[0] == j:
-                                    self.bool_offset_0 = True
-                                    self.offset_0_ndx = count
-                                    self.offset_ndx_list.insert(0,count)
-                                elif offset_list[1] == j:
-                                    self.bool_offset_1 = True
-                                    self.offset_1_ndx = count
-                                    self.offset_ndx_list.append(count)
+                        if len(offset_list) == 1:
+                            if offset_list[0] == j:
+                                self.bool_offset_0 = True
+                                self.offset_0_ndx = count
+                                self.offset_ndx_list.append(count)
+                        elif len(offset_list) == 2:
+                            if offset_list[0] == j:
+                                self.bool_offset_0 = True
+                                self.offset_0_ndx = count
+                                self.offset_ndx_list.insert(0,count)
+                            elif offset_list[1] == j:
+                                self.bool_offset_1 = True
+                                self.offset_1_ndx = count
+                                self.offset_ndx_list.append(count)
                     else:
                         self.log['nice'] = False
-                        self.log['info'] = 'Error: symmetry_list has to be an integer list'
+                        self.log['info'] = 'Error: symmetry_list has to be an integer 2D list'
                         return 0, 0
 
                 pro_symmetry_list.append(ls)
-                self.file_line_symmetry = self.file_line_symmetry[:-1] + '] '
                 if rmax == max(i):
                     bool_unique = True
                 rmax = max(rmax,max(i))
@@ -228,7 +244,6 @@
                 return 0, 0
             
             count += 1
-        self.file_line_symmetry += ']'
 
 
         if bool_unique or (lth != rmax) or (rmax != len(set(pro_1D))):
@@ -238,7 +253,7 @@
         self.symmetry_length = rmax
         
         pro_offset = []
-        if self.bool_offset:
+        if len(offset_list) != 0:
             try:               
                 if len(offset_list) == 1:
                     ndx = pro_1D.index(offset_list[0])
@@ -265,25 +280,20 @@
 
         bool_1D = False
         pro_counter_list = []
-        self.file_line_counter = '[ '
         for i in counter_list:
             if isinstance(i,int):
                 bool_1D = True
-                self.file_line_counter += str(i) + ' '
             elif isinstance(i,list):
                 if bool_1D:
                     self.log['nice'] = False
                     self.log['info'] = 'Error: the counter_list has to be correctly defined'
                     return 0
 
-                line = '['
                 for j in i:
                     if not isinstance(j,int):
                         self.log['nice'] = False
                         self.log['info'] = 'Error: the counter_list has to be correctly defined'
                         return 0
-                    line += str(j) + ' '
-                self.file_line_counter += line[:-1] + '] '
 
                 # make a copy of this sublist to avoid any mistakes
                 if len(i) == 2:
@@ -303,7 +313,6 @@
                 self.log['nice'] = False
                 self.log['info'] = 'Error: the counter_list has to be correctly defined'
                 return 0
-        self.file_line_counter += ']'
                 
         if bool_1D:
             if len(counter_list) == 2:
@@ -391,7 +400,7 @@
             if not bo:
                 self.log['nice'] = False
                 self.log['info'] = 'Error: the symmetry_list and counter_list are not corresponded\n' + \
-                                       '       OR, they are not correctly defined'
+                                   '       OR, they are not correctly defined'
                 return 0
             #if max(reflist[1],reflist[3]) % min(reflist[1],reflist[3]) != 0:
             #   print('Error: the parameters in counter_list have to be divided evenly')

@@ -56,9 +56,9 @@ def file_gen_new(fname,fextend='txt',foriginal=True,bool_dot=True):
 
 
 
-def function_file_input(filepath,comment_char='#',dtype=float,bool_tail=True,in_keyword='PAIR',
-                        cut_keyword='MAE',bool_force_cut_kw=False):
-    """get the input file, check if forcing the cut_kw or not"""
+def func_file_input(filepath,comment_char='#',dtype=float,bool_tail=True,in_keyword='PAIR',
+                    cut_keyword='MAE',bool_force_cut_kw=False,ignore_kw='HEAD'):
+    """get the input file, check whether forcing the cut_kw or not"""
     
     profile = []
     log = {'nice':True,}
@@ -68,38 +68,47 @@ def function_file_input(filepath,comment_char='#',dtype=float,bool_tail=True,in_
             if len(line) == 0:
                 break
             else:
+                bo = False
                 lp = line[:line.find(comment_char)].split()
                 if len(lp) == 0:
                     continue
                 elif len(lp) >= 2 and lp[0] == in_keyword:
-                    
                     if bool_force_cut_kw and line.find(cut_keyword) == -1:
                         log['nice'] = False
-                        log['info'] = 'Error: no cut_keyword was found'
-                        log['info'] = 'Error line: ' + line
+                        log['info'] = 'Error: no cut_keyword was found\n' + \
+                                      'Error line: ' + line
                         break
-                            
                     ls = []
-                    for tmp in lp[1:]:
-                        if tmp != cut_keyword:
-                            ls.append(dtype(tmp))
-                        else:
-                            if bool_tail is True:
-                                ls.append(dtype(lp[lp.index(tmp)+1]))
-                            break
-                    profile.append(ls)
-                    
+                    try:
+                        for tmp in lp[1:]:
+                            if tmp != cut_keyword:
+                                ls.append(dtype(tmp))
+                            else:
+                                if bool_tail is True:
+                                    t = lp.index(tmp) + 1
+                                    if len(lp) <= t:
+                                        ls.append('nan')
+                                    else:
+                                        ls.append(dtype(lp[lp.index(tmp)+1]))
+                                break
+                        profile.append(ls)
+                    except ValueError:
+                        bo = True
+                elif len(lp) >= 2 and lp[0] == ignore_kw:
+                    pass
                 else:
+                    bo = True
+                if bo:
                     log['nice'] = False
-                    log['info'] = 'Error: The input file format is not correctly defined'
-                    log['info'] = 'Error line: ' + line
+                    log['info'] = 'Error: The input file format is not correctly defined\n' + \
+                                  'Error line: ' + line
                     break
                 
     return log,profile
 
 
 
-def function_roundoff_error(v,vnm,s,snm,n=10,nmround=2):
+def func_roundoff_error(v,vnm,s,snm,n=10,nmround=2):
     """process the round-off-error"""
 
     def pro_rounderror(v,vnm,s,snm,n,nmround):
@@ -149,7 +158,7 @@ def function_roundoff_error(v,vnm,s,snm,n=10,nmround=2):
 
 
 
-def function_pro_pn_limit(string,bool_repeats=True):
+def func_pro_pn_limit(string,bool_repeats=True):
     """This method is used to process the parameter pn_limit, the raw input is
        a string, its correct formats are;
 
@@ -191,7 +200,7 @@ def function_pro_pn_limit(string,bool_repeats=True):
             raise ValueError
     except ValueError:
         log['nice'] = False
-        return log, []
+        return log, 0
 
     nl = pl = ''
     i = 0
@@ -211,7 +220,11 @@ def function_pro_pn_limit(string,bool_repeats=True):
     for i in nl.split():
         nvlist.append([int(i),'n'])
     for i in pl.split():
-        nvlist.append([int(i),'p']) 
+        nvlist.append([int(i),'p'])
+    
+    if not bool_repeats:
+        t = [i[0] for i in nvlist]
+        if len(t) != len(set(t)): log['nice'] = False
 
     return log, nvlist
 

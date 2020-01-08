@@ -1,6 +1,4 @@
-from GAML.functions import file_gen_new, file_size_check, function_file_input
-from GAML.function_prolist import Pro_list
-
+from GAML.functions import file_gen_new, file_size_check, func_file_input
 
 class File_gen_gromacstop(object):
     """
@@ -16,59 +14,91 @@ class File_gen_gromacstop(object):
         self.log = {'nice':True,}
 
         if 'reschoose' in kwargs and kwargs['reschoose'] is not None:
-            self.reschoose = kwargs['reschoose']
-        else:
-            self.reschoose = 'All'
-
-        if 'toppath' in kwargs and kwargs['toppath'] is not None:
-            self.toppath = kwargs['toppath']
-            log = file_size_check(self.toppath,fsize=50)
-            if not log['nice']:
+            if isinstance(kwargs['reschoose'],str):
+                if len(kwargs['reschoose'].split()) != 0:
+                    self.reschoose = kwargs['reschoose']
+                else:
+                    self.reschoose = 'ALL'
+            else:
                 self.log['nice'] = False
-                self.log['info'] = log['info']
-                return
-            fp = self._f_pro_topfile(self.toppath)
+                self.log['info'] = 'Error: parameter reschoose is not correctly defined'
+        else:
+            self.reschoose = 'ALL'
+
+
+        bo = False
+        if 'toppath' in kwargs and kwargs['toppath'] is not None:
+            if isinstance(kwargs['toppath'],str):
+                if len(kwargs['toppath'].split()) != 0:
+                    self.toppath = kwargs['toppath']
+                else:
+                    bo = True
+            else:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: parameter toppath is not correctly defined'
+            self.log = file_size_check(self.toppath,fsize=50)
             if not self.log['nice']: return
         else:
+            bo = True
+        if bo:
             self.log['nice'] = False
             self.log['info'] = 'Error: the parameter toppath is missing'
-            return        
+            return
+
 
         if 'in_keyword' in kwargs and kwargs['in_keyword'] is not None:
-            self.in_keyword = kwargs['in_keyword']
+            if isinstance(kwargs['in_keyword'],str):
+                if len(kwargs['in_keyword'].split()) != 0:
+                    self.in_keyword = kwargs['in_keyword']
+                else:
+                    self.in_keyword = 'PAIR'
+            else:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: parameter in_keyword is not correctly defined'
         else:
             self.in_keyword = 'PAIR'
-            
+
         if 'cut_keyword' in kwargs and kwargs['cut_keyword'] is not None:
-            self.cut_keyword = kwargs['cut_keyword']
+            if isinstance(kwargs['cut_keyword'],str):
+                if len(kwargs['cut_keyword'].split()) != 0:
+                    self.cut_keyword = kwargs['cut_keyword']
+                else:
+                    self.cut_keyword = 'MAE'
+            else:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: parameter cut_keyword is not correctly defined'
         else:
             self.cut_keyword = 'MAE'
-            
+
+        if 'fname' in kwargs and kwargs['fname'] is not None:
+            if isinstance(kwargs['fname'],str):
+                if len(kwargs['fname'].split()) != 0:
+                    self.fname = kwargs['fname']
+                else:
+                    self.fname = 'GenGromacsTopfile'
+            else:
+                self.log['nice'] = False
+                self.log['info'] = 'Error: parameter fname is not correctly defined'
+        else:
+            self.fname = 'GenGromacsTopfile'
+
+
         if 'charge_path' in kwargs and kwargs['charge_path'] is not None:
-            # function_file_input
+            # func_file_input
             charge_path = kwargs['charge_path']
             if isinstance(charge_path,str):           
-                log = file_size_check(charge_path,fsize=50)
-                if not log['nice']:
-                    self.log['nice'] = False
-                    self.log['info'] = log['info']
-                    return
+                self.log = file_size_check(charge_path,fsize=50)
+                if not self.log['nice']: return
                 self.file_line_chargepath = charge_path
-
-                log, self.prochargefile = function_file_input(charge_path,comment_char='#',dtype=float,
-                                                              bool_tail=False,in_keyword=self.in_keyword,
-                                                              cut_keyword=self.cut_keyword)
-                if not log['nice']:
-                    self.log['nice'] = False
-                    self.log['info'] = log['info']
-                    return
-                
-            elif isinstance(charge_path,list):           
+                self.log, self.prochargefile = func_file_input(charge_path,comment_char='#',dtype=float,
+                                                          bool_tail=False,in_keyword=self.in_keyword,
+                                                          cut_keyword=self.cut_keyword)
+                if not self.log['nice']: return
+            elif isinstance(charge_path,list):
                 dump_value = self._f_list_dcheck(charge_path)
                 if not self.log['nice']: return
                 self.prochargefile = charge_path
                 self.file_line_chargepath = 'Note: charge_path input is a list'
-
             else:
                 self.log['nice'] = False
                 self.log['info'] = 'Error: wrong defined charge_path parameter\n' + \
@@ -80,112 +110,117 @@ class File_gen_gromacstop(object):
             return
 
 
+        bo = False
+        # Note: gennm == 0 means outputs are equal to lenght of inputs
         if 'gennm' in kwargs and kwargs['gennm'] is not None:
-            try:
-                self.gennm = int(kwargs['gennm'])
-                
-                if self.gennm == 0 or self.gennm > len(self.prochargefile):
-                    self.gennm = len(self.prochargefile)
-                elif self.gennm < 0:
-                    raise ValueError                                
-            except ValueError:
-                self.log['nice'] = False
-                self.log['info'] = 'Error: the gennm has to be a positive integer\n' + \
-                                   'Error gennm: '+ str(kwargs['gennm'])
-                return                 
-        else:
-            self.gennm = len(self.prochargefile)
-
-        if 'symmetry_list' in kwargs:
-            symmetry_list = kwargs['symmetry_list']
-        else:
-            symmetry_list = None
-
-        ndx = len(self.atomndx)           
-        if symmetry_list is None:
-            symmetry_list = list(range(ndx))
-            symmetry_length = ndx
-            self.file_line_symmetry = None
-            
-        elif isinstance(symmetry_list,list):
-            if len(symmetry_list) == 0:
-                symmetry_list = list(range(ndx))
-                symmetry_length = ndx
-                self.file_line_symmetry = None
+            if isinstance(kwargs['gennm'],int):
+                self.gennm = kwargs['gennm']
+            elif isinstance(kwargs['gennm'],str):
+                if len(kwargs['gennm'].split()) == 0:
+                    self.gennm = 0
+                else:
+                    try:
+                        self.gennm = int(kwargs['gennm'])
+                        if self.gennm < 0: raise ValueError
+                    except ValueError:
+                        bo = True
             else:
-                _par = Pro_list(symmetry_list=symmetry_list)
-                if not _par.log['nice']:
-                    self.log['nice'] = False
-                    self.log['info'] = _par.log['info']
-                    return
-                symmetry_list = _par.symmetry_list
-                symmetry_length = _par.symmetry_length
-                self.file_line_symmetry = _par.file_line_symmetry
+                bo = True
         else:
+            self.gennm = 0
+        if bo:
             self.log['nice'] = False
-            self.log['info'] = 'Error: the parameter symmetry_list has to be a list'
+            self.log['info'] = 'Error: the gennm has to be a positive integer\n' + \
+                               'Error gennm: '+ str(kwargs['gennm'])
             return
+        self.gennm = min(self.gennm, len(self.prochargefile))
+        if self.gennm == 0: self.gennm = len(self.prochargefile)
 
 
-        if symmetry_length > ndx:
+        # Note: each human-readable indice of symmetry_list has to deduct 1 for python-list
+        bo = False
+        if 'symmetry_list' in kwargs and kwargs['symmetry_list'] is not None:
+            if isinstance(kwargs['symmetry_list'],list):
+                self.symmetry_list = kwargs['symmetry_list'] if len(kwargs['symmetry_list']) != 0 else None
+            elif isinstance(kwargs['symmetry_list'],str):
+                self.symmetry_list = kwargs['symmetry_list'] if len(kwargs['symmetry_list'].split()) != 0 else None
+            else:
+                bo = True
+        else:
+            self.symmetry_list = None
+        if not bo and isinstance(self.symmetry_list,str):
+            try:
+                self.symmetry_list = eval(self.symmetry_list)
+            except:
+                bo = True
+        if not bo and self.symmetry_list is not None:
+            flatten = []
+            for i in self.symmetry_list:
+                if isinstance(i,int):
+                    flatten.append(i)
+                elif isinstance(i,list):
+                    for j in i:
+                        if isinstance(j,int):
+                            flatten.append(j)
+                        else:
+                            bo = True
+                            break
+                else:
+                    bo = True
+                if bo: break
+            symmetry_length = len(flatten)
+            if symmetry_length != len(set(flatten)): bo = True
+        if bo:
+            self.log['nice'] = False
+            self.log['info'] = 'Error: the parameter symmetry_list is not correctly defined'
+            return
+    
+
+        dump_value = self._f_pro_topfile(self.toppath)
+        if not self.log['nice']: return
+        
+        # check the relation topfile with symmetry_list
+        if self.symmetry_list is None:
+            self.symmetry_list = list(range(len(self.atomndx)))
+        elif len(self.atomndx) < symmetry_length:
             self.log['nice'] = False
             self.log['info'] = 'Error: the symmetry_list and topfile are not corresponded'
             return
+        elif len(self.atomndx) > symmetry_length:
+            print('Warning: symmetry_list only makes changes on the first residue')
 
+
+        # check the relation chargefile with symmetry_list
         count = 1
-        lth = len(symmetry_list)
+        lth = len(self.symmetry_list)
         ls = []
         for i in self.prochargefile[:self.gennm]:
             if len(i) < lth:
-                print('Error: the chargefile and topfile are not corresponded')
-                exit()
+                self.log['nice'] = False
+                self.log['info'] = 'Error: the chargefile and topfile are not corresponded'
+                return
             elif len(i) > lth:
                 ls.append(count)
             count += 1
             
         if len(ls) > 0:
-            print('Warning: the number of charges are bigger than the atom numbers in the topfile')
+            print('Warning: the number of charges are bigger than the number of atoms in the topfile')
             print('       : truncation will happen, only the number of leading charges will be used')
             print('       : the number of this charge pair is:')
             for count in ls:
                 print(count,end='   ')
             print()
 
-        self.refatomtype = []
-        for i in symmetry_list:
-            if isinstance(i,int):
-                line = self.protopfile[self.atomndx[i]]
-                self.refatomtype.append(line.split()[1])
-            else:
-                line_1 = self.protopfile[self.atomndx[i[0]]]
-                atype = line_1.split()[1]
-                if len(i) > 1:
-                    for j in i[1:]:
-                        line = self.protopfile[self.atomndx[j]]
-                        if atype != line.split()[1]:
-                            self.log['nice'] = False
-                            self.log['info'] = 'Error: the atom_types under [atoms] directive in top file is not equivalent\n' + \
-                                               'Error: symmetry_list:' + line_1[:-1] + '\n' + \
-                                               line[:-1]
-                            return
-                self.refatomtype.append(atype)
-                           
-        dump_value = self._generator()
-        if not self.log['nice']: return
 
-
-        if 'fname' in kwargs and kwargs['fname'] is not None:
-            self.fname = kwargs['fname']
-        else:
-            self.fname = 'GenGromacsTopfile'
-
-                
 
     def _f_list_dcheck(self,list_input):
         """check if the input list dimensions and data-type, only 2D list is valid"""
 
         self.log['nice'] = True
         self.log['info'] = 'Error: the input_list is not properly defined'
+        if not isinstance(list_input,list):
+            self.log['nice'] = False
+            return
         for i in list_input:
             if isinstance(i,list) and len(i) != 0:
                 for j in i:
@@ -197,10 +232,11 @@ class File_gen_gromacstop(object):
                 return 0
         return 1
 
+
     def procomments(self,string):
-            if string.find(';') == -1:
-                return string
-            return string[:string.find(';')]
+        if string.find(';') == -1:
+            return string
+        return string[:string.find(';')]
 
 
     def _f_pro_topfile(self,toppath):
@@ -210,16 +246,16 @@ class File_gen_gromacstop(object):
         # self.protopfile
         with open(toppath,mode='rt') as f:
             self.protopfile = f.readlines()
-                        
+
         i = 0
         atomtypendx = []
         atomndx = []
+        molndx = []
         syslist = []
         while i < len(self.protopfile):
-            line = self.protopfile[i]
 
             # remove the comments
-            line = self.procomments(line)
+            line = self.procomments(self.protopfile[i])
 
             if line.find('[') != -1:
                 strtmp = ''
@@ -236,7 +272,7 @@ class File_gen_gromacstop(object):
                     subline = self.protopfile[j]
                     subltmp = self.procomments(subline).split()
                     
-                    if len(subltmp) == 0 or (len(subltmp) > 0 and subltmp[0][0] == '#'):
+                    if len(subltmp) == 0 or (len(subltmp) > 0 and subltmp[0][0] in ['#',';']):
                         j += 1
                         continue
                     if len(subltmp) == 6 or len(subltmp) == 7:
@@ -249,7 +285,30 @@ class File_gen_gromacstop(object):
                         return 0
                     
                     j += 1
-                i = j 
+                i = j
+            
+            elif line == '[moleculetype]':
+                j = i + 1
+                while True:
+                    if self.protopfile[j].find('[') != -1 or j >= len(self.protopfile):
+                        break
+                    subline = self.protopfile[j]
+                    subltmp = self.procomments(subline).split()
+                    
+                    if len(subltmp) == 0 or (len(subltmp) > 0 and subltmp[0][0] in ['#',';']):
+                        j += 1
+                        continue
+                    if len(subltmp) == 2:
+                        molndx.append(subltmp[0])
+                    else:
+                        self.log['nice'] = False
+                        self.log['info'] = 'Error: wrong top file input\n' + \
+                                           'Error: wrong entry,\n' + \
+                                           subline
+                        return 0
+                    
+                    j += 1
+                i = j
 
             elif line == '[atoms]':
                 ls = []
@@ -260,7 +319,7 @@ class File_gen_gromacstop(object):
                     subline = self.protopfile[j]
                     subltmp = self.procomments(subline).split()
                     
-                    if len(subltmp) == 0 or (len(subltmp) > 0 and subltmp[0][0] == '#'):
+                    if len(subltmp) == 0 or (len(subltmp) > 0 and subltmp[0][0] in ['#',';']):
                         j += 1
                         continue
                     if len(subltmp) < 6 and len(subltmp) > 8:
@@ -286,11 +345,11 @@ class File_gen_gromacstop(object):
                     subline = self.protopfile[j]
                     subltmp = self.procomments(subline).split()
                     
-                    if len(subltmp) == 0 or (len(subltmp) > 0 and subltmp[0][0] == '#'):
+                    if len(subltmp) == 0 or (len(subltmp) > 0 and subltmp[0][0] in ['#',';']):
                         j += 1
                         continue
                     if len(subltmp) == 2:
-                        syslist.append( subltmp[0] )
+                        syslist.append(subltmp[0])
                     else:
                         self.log['nice'] = False
                         self.log['info'] = 'Error: wrong top file input\n' + \
@@ -303,9 +362,15 @@ class File_gen_gromacstop(object):
             else:
                 i += 1
 
-        
+        if len(syslist) == 0 and len(molndx) == 0:
+            self.log['nice'] = False
+            self.log['info'] = 'Error: topfile format is wrong, no [moleculetype] nor [molecules] entry is found!'
+            return 0 
+
+
         # adjust the directives' sequence
-        proatomndx = []      
+        proatomndx = []
+        if len(syslist) == 0: syslist = molndx
         for res in syslist:
             bool_ndx = True
             print('For top file, processing residue < {:s} > ... '.format(res))
@@ -317,9 +382,9 @@ class File_gen_gromacstop(object):
                     break
             if bool_ndx:
                 self.log['nice'] = False
-                self.log['info'] = 'Error: for residue' + res + 'the corresponded [atoms] directive is not found'
+                self.log['info'] = 'Error: topfile format is wrong\n' + \
+                                   '     : for residue' + res + 'the corresponded [atoms] directive is not found'
                 return 0 
-                
 
         # select the residue based on given parameter, self.reschoose
         # self.atomtypendx, self.atomndx
@@ -349,9 +414,28 @@ class File_gen_gromacstop(object):
 
 
 
-    def _generator(self):
+    def run(self):
         """combine the charge file and top file, the defined_class parameter, self.outfile"""
 
+        # take care of self.symmetry_list
+        refatomtype = []
+        for i in self.symmetry_list:
+            if isinstance(i,int):
+                line = self.protopfile[self.atomndx[i-1]]
+                refatomtype.append(line.split()[1])
+            else:
+                line_1 = self.protopfile[self.atomndx[i[0]-1]]
+                atype = line_1.split()[1]
+                if len(i) > 1:
+                    for j in i[1:]:
+                        line = self.protopfile[self.atomndx[j-1]]
+                        if atype != line.split()[1]:
+                            self.log['nice'] = False
+                            self.log['info'] = 'Error: the atom_types under [atoms] directive in top file is not equivalent\n' + \
+                                               'Error: symmetry_list:\n' + line_1[:-1] + '\n' + line[:-1]
+                            return 0
+                refatomtype.append(atype)
+        
         totatomtype = []
         for i in self.atomtypendx:
             ltmp = self.protopfile[i].split()
@@ -367,13 +451,12 @@ class File_gen_gromacstop(object):
 
             # ATTENTION! Here is very important !!!
             # make a copy of self.protopfile, avoide the same memory address
-
+            # This copy has the same effect like the DEEP copy due to its DATA TYPE
             topfile = self.protopfile[:]
-
 
             count = 0
             for pair in charge:
-                atype = self.refatomtype[count]
+                atype = refatomtype[count]
                 try:
                     ndx = totatomtype.index(atype)
                 except:
@@ -416,59 +499,52 @@ class File_gen_gromacstop(object):
             self.outfile.append(topfile)
 
         return 1
-    
 
-    # generate files
-    
+
     def file_print(self):
-        
+
+        bo = False
         if len(self.outfile) == 0:
             print('Warning: no file is going to output')
             print('       : please try to change the input chargefile')
-            exit()
         else:
             print('\nOne sample of generated GROMACS_top files is:\n')
-
             print('  [ atoms ]')
             for i in self.atomndx:
                 print(self.outfile[0][i],end='')
             
-            print('\nDo you want to continue?  y/yes, else quit')
-            print('    this will generate \'top\' files >',end='    ')
+            print('\nDo you want to continue? ( {:} topfiles will be generated ). y/yes, else quit'.format(self.gennm))
+            print('This will generate \'top\' files >',end='    ')
             get_input = input()
             if get_input.upper() != 'Y' and get_input.upper != 'YES':
                 print('\nWarning: you have decided to quit ...')
                 print('       : nothing is generated\n')
-                exit()
             else:
                 print('\nGreat! Going to generate files ...\n')
+                bo = True
                 
-        
-        topnamelist = []
-        for top in self.outfile:
-            
-            fname = file_gen_new(self.fname,fextend='top',foriginal=False)
+        if bo:
+            topnamelist = []
+            for top in self.outfile:
+                fname = file_gen_new(self.fname,fextend='top',foriginal=False)
+                topnamelist.append(fname)
+                with open(fname,mode='wt') as f:
+                    for line in top:
+                        f.write(line)
 
-            topnamelist.append(fname)
+            fnamelist = self.fname + '_NameList'
+            fnamelist = file_gen_new(fnamelist,fextend='txt',foriginal=False)
             
-            with open(fname,mode='wt') as f:
-                for line in top:
-                    f.write(line)
-
-        fnamelist = self.fname + '_NameList'
-        fnamelist = file_gen_new(fnamelist,fextend='txt',foriginal=False)
-        
-        with open(fnamelist,mode='wt') as f:
-            f.write('# This is a collection of all the generated GROMACS topfile names \n')
-            f.write('# The topfile used is:\n')
-            f.write('#    {:s}\n'.format(self.toppath))
-            f.write('# The charge_file used is:\n')
-            f.write('#    {:s}\n\n'.format(self.file_line_chargepath))
-            if len(self.file_line_symmetry) != 0:
+            with open(fnamelist,mode='wt') as f:
+                f.write('# This is a collection of all the generated GROMACS topfile names \n')
+                f.write('# The topfile used is:\n')
+                f.write('#    {:s}\n'.format(self.toppath))
+                f.write('# The charge_file used is:\n')
+                f.write('#    {:s}\n\n'.format(self.file_line_chargepath))
                 f.write('# The symmetry_list used is:\n')
-                f.write('#    {:s}\n\n'.format(self.file_line_symmetry))
-            for i in topnamelist:
-                f.write(i)
-                f.write('\n')
+                f.write('#    {:s}\n\n'.format(str(self.symmetry_list)))
+                for i in topnamelist:
+                    f.write(i)
+                    f.write('\n')
 
 

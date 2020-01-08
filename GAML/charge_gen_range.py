@@ -1,5 +1,5 @@
 from GAML.functions import file_gen_new, file_size_check
-from GAML.function_gen_range import function_gen_range
+from GAML.function_gen_range import func_gen_range
 
 class Charge_gen_range(object):
     """Generate the charge ranges surrounding the mode number"""   
@@ -37,11 +37,8 @@ class Charge_gen_range(object):
                the second column is the atom-type, the last one is the value"""
 
             self.charge_path = kwargs['charge_path']
-            mcp = file_size_check(self.charge_path,fsize=100)
-            if not mcp['nice']:
-                self.log['nice'] = False
-                self.log['info'] = mcp['info']
-                return
+            self.log = file_size_check(self.charge_path,fsize=100)
+            if not self.log['nice']: return
 
             datalist = []
             with open(self.charge_path,mode='rt') as f:
@@ -127,9 +124,9 @@ class Charge_gen_range(object):
 
 
 
-    def charge_range(self):                       
+    def run(self):
         atom = 0
-        charge_range = []
+        self.charge_range = []
         while atom < self.atomnm:
             atomcharge = []
             for mol in self.profile:
@@ -148,31 +145,27 @@ class Charge_gen_range(object):
                 rlist.append(lcount)
                 lmin += self.stepsize
 
-            ndxmin,ndxmax = function_gen_range(rlist,percent=self.percent)
+            self.log,ndxmin,ndxmax = func_gen_range(rlist,percent=self.percent)
+            if not self.log['nice']: return
 
             ltmp = []
             ltmp.append(round((ndxmin * self.stepsize + charmin),self.nmround))
             ltmp.append(round(((ndxmax-1) * self.stepsize + charmin),self.nmround))
-            charge_range.append(ltmp)
+            self.charge_range.append(ltmp)
 
             atom += 1
-
-        return charge_range
 
 
     def file_print(self):
         
         fname = file_gen_new(self.fname,fextend='txt',foriginal=True)
-
-        charge_range = self.charge_range()
-        
         with open(fname,mode='wt') as f:
             f.write('# This is the generated charge_range based on the input charge_file \n')
             f.write('# The charge file used is:\n')
             f.write('#     {:s}\n'.format(self.charge_path))
             f.write('# Each line\'s charge_range is corresponded to each atom \n\n')
             j = 1
-            for i in charge_range:
+            for i in self.charge_range:
                 f.write('ATOM {:>6d}    {:>8.4f}    {:>8.4f}\n'.format(j,i[0],i[1]))
                 j += 1
 
