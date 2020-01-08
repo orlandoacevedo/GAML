@@ -1,4 +1,4 @@
-from GAML.functions import file_gen_new,file_size_check
+from GAML.functions import file_gen_new, file_size_check
 import itertools
 import random
 
@@ -34,11 +34,8 @@ class File_gen_gaussian(object):
 
         if 'toppath' in kwargs and kwargs['toppath'] is not None:
             self.toppath = kwargs['toppath']
-            log = file_size_check(self.toppath,fsize=10)
-            if not log['nice']:
-                self.log['nice'] = False
-                self.log['info'] = log['info']
-                return
+            self.log = file_size_check(self.toppath,fsize=10)
+            if not self.log['nice']: return
         else:
             self.log['nice'] = False
             self.log['info'] = 'Error: the parameter toppath is missing'
@@ -46,11 +43,8 @@ class File_gen_gaussian(object):
 
         if 'file_path' in kwargs and kwargs['file_path'] is not None:
             self.file_path = kwargs['file_path']
-            log = file_size_check(self.file_path,fsize=500)
-            if not log['nice']:
-                self.log['nice'] = False
-                self.log['info'] = log['info']
-                return
+            self.log = file_size_check(self.file_path,fsize=500)
+            if not self.log['nice']: return
         else:
             self.log['nice'] = False
             self.log['info'] = 'Error: the parameter file_path is missing'
@@ -565,15 +559,14 @@ class File_gen_gaussian(object):
             chooselist.append(lt)
 
         return chooselist
-    
 
 
     def _prefile(self):
         """Prepare for print"""        
 
-        # the 'resnmprint' is used to identify the position of the chosen_residue
+        # the self.resnmprint is used to identify the position of the chosen_residue
         profile = []
-        resnmprint = []
+        self.resnmprint = []
         for ndx in self.reflist:
             ls = []
             count = 0
@@ -584,7 +577,7 @@ class File_gen_gaussian(object):
                     ls.append(j)
                 count += 1
             profile.append(ls)
-            resnmprint.append(line)
+            self.resnmprint.append(line)
 
         i = 0
         proatom = []
@@ -640,7 +633,7 @@ class File_gen_gaussian(object):
 
         fnamelist = []
         for sys in self.outfile:
-            filename = file_gen_new(pfname,fextend='com',foriginal=False)
+            filename = file_gen_new(self.fname,fextend='com',foriginal=False)
             fnamelist.append(filename)       
             with open(filename,mode='wt') as f:
                 for res in sys:
@@ -649,7 +642,7 @@ class File_gen_gaussian(object):
                         f.write('\n')
                         
 
-        pfname = pfname + '_namelist'
+        pfname = self.fname + '_namelist'
         pfname = file_gen_new(pfname,fextend='txt',foriginal=False)
         with open(pfname,mode='wt') as f:
             f.write('# This file is a name_list of chosen_residue \n\n')
@@ -669,9 +662,8 @@ class File_gen_gaussian(object):
             j = 1
             count = 0
             for i in fnamelist:
-                f.write('{:>6d} {:s}    {:>20s} \n'.format(j,resnmprint[count],i))
+                f.write('{:>6d} {:s}    {:>20s} \n'.format(j,self.resnmprint[count],i))
                 count += 1
                 j += 1
 
 
-                 

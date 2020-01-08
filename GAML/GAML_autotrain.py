@@ -14,11 +14,8 @@ class GAML_autotrain(object):
             self.log['info'] = 'Error: no file inputs'
             return
         self.file = kwargs['file_path']
-        log = file_size_check(self.file,fsize=2)
-        if not log['nice']:
-            self.log['nice'] = False
-            self.log['info'] = log['info']
-            return
+        self.log = file_size_check(self.file,fsize=2)
+        if not self.log['nice']: return
         
         self.fname = 'PAIR_Charge'
         self.parameters = { 'top_gas_path'        : None,
@@ -75,11 +72,8 @@ class GAML_autotrain(object):
         # check for the bash scripts
         if 'bashinterfile' in kwargs and kwargs['bashinterfile'] is not None:
             self.bashinterfile = kwargs['bashinterfile']
-            log = file_size_check(self.bashinterfile,fsize=10)
-            if not log['nice']:
-                self.log['nice'] = False
-                self.log['info'] = log['info']
-                return
+            self.log = file_size_check(self.bashinterfile,fsize=10)
+            if not self.log['nice']: return
             with open(self.bashinterfile,mode='rt') as f:
                 self._shfile = f.read()
         else:

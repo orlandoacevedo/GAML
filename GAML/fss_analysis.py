@@ -1,5 +1,5 @@
-from GAML.functions import file_size_check, file_gen_new, function_file_input
-from GAML.function_gen_range import function_gen_range
+from GAML.functions import file_size_check, file_gen_new, func_file_input
+from GAML.function_gen_range import func_gen_range
 import matplotlib.pyplot as plt
 
 class FSS_analysis(object):
@@ -9,11 +9,8 @@ class FSS_analysis(object):
 
         if 'file_path' in kwargs and kwargs['file_path'] is not None:
             self.filepath = kwargs['file_path']
-            log = file_size_check(self.filepath,fsize=200)
-            if not log['nice']:
-                self.log['nice'] = False
-                self.log['info'] = log['info']
-                return
+            self.log = file_size_check(self.filepath,fsize=200)
+            if not self.log['nice']: return
         else:
             self.log['nice'] = False
             self.log['info'] = 'Error: no file inputs'
@@ -108,19 +105,16 @@ class FSS_analysis(object):
             self.color_map = 'rainbow'
             
 
-        self._function_ready()
+        self._func_ready()
         if not self.log['nice']: return
 
         
 
-    def function_fss(self):
+    def func_fss(self):
         
-        log,chargehvap = function_file_input(self.filepath,bool_tail=True,cut_keyword=self.cut_keyword,
-                                             bool_force_cut_kw=True)
-        if not log['nice']:
-            self.log['nice'] = False
-            self.log['info'] = log['info']
-            return [],[],[]
+        self.log,chargehvap = func_file_input(self.filepath,bool_tail=True,cut_keyword=self.cut_keyword,
+                                              bool_force_cut_kw=True)
+        if not self.log['nice']: return [],[],[]
         
         # filter the list using the error_tolerance
         prolist = []
@@ -172,7 +166,8 @@ class FSS_analysis(object):
                 lp.append(count)
                 rmin += self.stepsize
             
-            atmp,btmp = function_gen_range(lp,percent=self.percent)
+            self.log,atmp,btmp = func_gen_range(lp,percent=self.percent)
+            if not self.log['nice']: return [],[],[]
 
             lt = []
             lt.append( round(chmin + self.stepsize * atmp,5) )
@@ -273,9 +268,9 @@ class FSS_analysis(object):
 
 
 
-    def _function_ready(self):
+    def _func_ready(self):
              
-        stderrlist,plotlist,self.valuerangelist = self.function_fss()
+        stderrlist,plotlist,self.valuerangelist = self.func_fss()
         if not self.log['nice']: return
 
         if self.atomtype_list is None:
