@@ -163,7 +163,7 @@ gaml [command] -h
 
 ## Notes
 ----------
-The most recent version of the software is GAML v0.51 and is still heavily under development. Lennard-Jones optimization has not been implemented in this GitHub version.
+The most recent version of the software is GAML v0.6 and is still under development.
 A test for a 1-butylpyridinium-based ionic liquid can be found under the ``sample/`` directory
 Some features worth mentioning:
 + Customized selection range for Coulombic interactions with PBC removal
@@ -173,7 +173,7 @@ Some features worth mentioning:
 
 ## References
 ----------
-Zhong, X.; Acevedo, O. "Genetic Algorithm Machine Learning (GAML) software package for automated force field parameterization of solvents." (in preparation for submission)
+Zhong, X.; Acevedo, O. "Automated force field parameterization of Deep Eutectic Solvents using the Genetic Algorithm Machine Learning (GAML) software." (in preparation for submission)
 
 ## About
 -----
@@ -183,4 +183,4 @@ Zhong, X.; Acevedo, O. "Genetic Algorithm Machine Learning (GAML) software packa
 
 **Software License**:
 GAML. Genetic Algorithm Machine Learning (GAML) software package.
-Copyright (C) 2018  Orlando Acevedo
+Copyright (C) 2020  Orlando Acevedo
