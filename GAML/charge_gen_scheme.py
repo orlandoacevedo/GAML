@@ -1,5 +1,5 @@
-from GAML.functions import file_size_check, file_gen_new, func_roundoff_error, func_pro_pn_limit
-from GAML.function_prolist import Prolist
+from functions import file_size_check, file_gen_new, func_roundoff_error, func_pro_pn_limit
+from function_prolist import Prolist
 import random
 
 class Charge_gen_scheme(object):
@@ -222,17 +222,14 @@ class Charge_gen_scheme(object):
                                         '     : they have to be one in positive and the other in negative'
                     return
         
-        # softly update self.prolist.offset_ndx_list
-        if len(self.prolist.offset_ndx_list) == 2:
-            if self.prolist.offset_ndx_list[1] in ndxreflist or self.prolist.offset_ndx_list[1] in ndxpnlist:
+        # softly update self.prolist.offset_ndx_list to avoid "counter_list" conflicts
+        if len(self.prolist.offset_list) == 2:
+            if self.prolist.offset_ndx_list[1] in ndxreflist:
                 self.prolist.offset_ndx_list = [self.prolist.offset_ndx_list[0],]
                 self.prolist.offset_1_ndx = 0
-                self.prolist.bool_offset_1 = False
-        if len(self.prolist.offset_ndx_list) == 1:
-            if self.prolist.offset_ndx_list[0] in ndxreflist or self.prolist.offset_ndx_list[0] in ndxpnlist:
+        if len(self.prolist.offset_list) == 1:
+            if self.prolist.offset_ndx_list[0] in ndxreflist:
                 self.prolist.offset_ndx_list = []
-                self.prolist.offset_0_ndx = 0
-                self.prolist.bool_offset_0 = False
 
         # pre-process self.charge_list: make sure index(0) < index(1)
         self.prochargelist()
@@ -430,8 +427,8 @@ class Charge_gen_scheme(object):
             
             # based on copysymmetry, calculate new offlist for self.prolist.offset_ndx_list
             offlist = []
-            for i in self.prolist.offset_ndx_list:
-                t = self.symmetry_list[i]
+            for i,tmp in enumerate(self.prolist.offset_list):
+                t = self.symmetry_list[self.prolist.offset_ndx_list[i]]
                 offlist.append(copysymmetry.index(t))
 
             ndxlist = list(range(len(copysymmetry)))
@@ -477,8 +474,8 @@ class Charge_gen_scheme(object):
             # Now, take care of the offset_nm to apply the charge constrain
             # it is divided into three different situations, where when the length of self.offset_list
             #   is equal to 0, 1 or 2
-            if len(self.prolist.offset_ndx_list) == 0 or len(self.prolist.offset_ndx_list) == 1:
-                if len(self.prolist.offset_ndx_list) == 1:
+            if len(self.prolist.offset_list) == 0 or len(self.prolist.offset_list) == 1:
+                if len(self.prolist.offset_list) == 1:
                     ndx = self.symmetry_list[self.prolist.offset_0_ndx]
                     if isinstance(ndx,int):
                         ndxlth = 1
@@ -505,44 +502,37 @@ class Charge_gen_scheme(object):
                             totcharge += rch * ndxlth
                             subcharp.append([ndx,rch])
                             break
-                
-                if round(totcharge - calc_total_charge, calc_nmround + 2) != 0:
-                    # randomly choose a chargepair but not the counter-pair-charge nor pnlist
-                    while True:
-                        j = random.randrange(len(copysymmetry))
-                        offsetndx = copysymmetry[j]
-                        if offsetndx not in pnlist:
-                            offset_lth = 1 if isinstance(offsetndx,int) else len(offsetndx)
-                            break
-
-                    cnt = 0
-                    while cnt < len(subcharp):
-                        if subcharp[cnt][0] == offsetndx: break
-                        cnt += 1
-
-                    chartmp = ( calc_total_charge - totcharge ) / offset_lth + subcharp[cnt][1]
-                    chartmp = round(chartmp,calc_nmround)
-                    subcharp[cnt][1] = chartmp
             else:
+                ndx_1 = self.symmetry_list[ self.prolist.offset_1_ndx ]
+                if isinstance(ndx_1,int):
+                    ndxlth_1 = 1
+                    j = ndx_1
+                else:
+                    ndxlth_1 = len(ndx_1)
+                    ix = random.randrange(ndxlth_1)
+                    j = ndx_1[ix]
+                    
+                chmin_1 = int( self.charge_list[j][0] * multibase )
+                chmax_1 = int( self.charge_list[j][1] * multibase )
+
+                ndx_0 = self.symmetry_list[ self.prolist.offset_0_ndx ]
+                if isinstance(ndx_0,int):
+                    ndxlth_0 = 1
+                    j = ndx_0
+                else:
+                    ndxlth_0 = len(ndx_0)
+                    ix = random.randrange(ndxlth_0)
+                    j = ndx_0[ix]
+                    
+                chmin_0 = self.charge_list[j][0]
+                chmax_0 = self.charge_list[j][1]
+
                 subcharsum = 0.0
                 bool_charge_index = True
-                for dump in range(self.offset_nm):
-                    offset_totcharge = totcharge
-                    
-                    ndx = self.symmetry_list[ self.prolist.offset_1_ndx ]
-                    if self.prolist.bool_offset_1:
-                        ndxlth_1 = len(ndx)
-                        ix = random.randrange(ndxlth_1)
-                        j = ndx[ix]
-                    else:
-                        ndxlth_1 = 1
-                        j = self.symmetry_list[ self.prolist.offset_1_ndx ]
-
-                    chmin = int( self.charge_list[j][0] * multibase )
-                    chmax = int( self.charge_list[j][1] * multibase )
-                    
+                offset_totcharge = totcharge
+                for dump in range(self.offset_nm):                    
                     while True:
-                        genrch = random.randrange(chmin,chmax)
+                        genrch = random.randrange(chmin_1,chmax_1)
                         genrch = round(float(genrch)/multibase,calc_nmround)
                         # apply self.bool_nozero & self.pn_limit
                         bo = True
@@ -557,53 +547,56 @@ class Charge_gen_scheme(object):
                     subcharsum += genrch
                     offset_totcharge += genrch * ndxlth_1
 
-                    ndx = self.symmetry_list[ self.prolist.offset_0_ndx ]
-                    if self.prolist.bool_offset_0:
-                        ndxlth_0 = len(ndx)
-                        ix = random.randrange(ndxlth_0)
-                        j = ndx[ix]
-                    else:
-                        ndxlth_0 = 1
-                        j = self.symmetry_list[ self.prolist.offset_0_ndx ]
-
-                    chmin = self.charge_list[j][0]
-                    chmax = self.charge_list[j][1]
                     rch = ( calc_total_charge - offset_totcharge ) / ndxlth_0
                     rch = round(rch,calc_nmround)
                     offset_totcharge += rch * ndxlth_0
 
                     # apply self.bool_nozero & self.pn_limit
                     bo = True
-                    if rch < chmin or rch > chmax: bo = False
+                    if rch < chmin_0 or rch > chmax_0: bo = False
                     if round(calc_total_charge - offset_totcharge,calc_nmround+2) != 0: bo = False
                     if bo and self.bool_nozero and rch == 0: bo = False
-                    if bo and ndx in pnlist:
-                        t = vulist[pnlist.index(ndx)]
+                    if bo and ndx_0 in pnlist:
+                        t = vulist[pnlist.index(ndx_0)]
                         if ( t == 'p' and rch <= 0 ) or ( t == 'n' and rch >= 0 ):
                             bo = False
                     if bo:
-                        tmp = self.symmetry_list[ self.prolist.offset_1_ndx ]
-                        subcharp.append([tmp,genrch])
-                        
-                        tmp = self.symmetry_list[ self.prolist.offset_0_ndx ]
-                        subcharp.append([tmp,rch])
-
                         bool_charge_index = False
                         break
-            
+                        
                 if bool_charge_index:
-                    ndx_1 = self.symmetry_list[ self.prolist.offset_1_ndx ]
-                    ndxlth_1 = len( ndx_1 ) if self.prolist.bool_offset_1 else 1
                     genrch = round(subcharsum/self.offset_nm,calc_nmround)
 
-                    rtmp = calc_total_charge - totcharge - ( genrch * ndxlth_1 )
+                    rch = calc_total_charge - totcharge - ( genrch * ndxlth_1 )
+                    rch = round(rch / ndxlth_0,calc_nmround)
 
-                    ndx_0 = self.symmetry_list[ self.prolist.offset_0_ndx ]
-                    ndxlth_0 = len( ndx_0 ) if self.prolist.bool_offset_0 else 1
-                    rch = round(rtmp / ndxlth_0,calc_nmround)
+                # append ndx_1 and ndx_0 and their corresponding values
+                subcharp.append([ndx_1, genrch])
+                subcharp.append([ndx_0, rch])
 
-                    subcharp.append([ndx_1, genrch])
-                    subcharp.append([ndx_0, rch])
+                # update totcharge
+                totcharge += genrch*ndxlth_1 + rch*ndxlth_0
+
+            while round(totcharge - calc_total_charge, calc_nmround + 2) != 0:
+                # randomly choose a chargepair but not the counter-pair-charge nor pnlist
+                while True:
+                    j = random.randrange(len(copysymmetry))
+                    offsetndx = copysymmetry[j]
+                    if offsetndx not in pnlist:
+                        offset_lth = 1 if isinstance(offsetndx,int) else len(offsetndx)
+                        break
+
+                cnt = 0
+                while cnt < len(subcharp):
+                    if subcharp[cnt][0] == offsetndx: break
+                    cnt += 1
+
+                chartmp = ( calc_total_charge - totcharge ) / offset_lth
+                chartmp = round(chartmp,calc_nmround)
+                subcharp[cnt][1]  = round(chartmp+subcharp[cnt][1],calc_nmround)
+
+                totcharge += chartmp * offset_lth
+
 
             # adjust subcharp list to correspond to symmetry_list
             pair = []
@@ -720,7 +713,7 @@ class Charge_gen_scheme(object):
             if len(self.symmetry_list) != 0:
                 f.write('# The symmetry_list used is:\n')
                 f.write('#    {:s}\n\n'.format(self.prolist.file_line_symmetry))
-                if len(self.prolist.offset_ndx_list) != 0:
+                if len(self.prolist.offset_list) != 0:
                     f.write('# The offset_list used is:\n')
                     f.write('#    {:s}\n\n'.format(self.prolist.file_line_offset))
 
@@ -755,5 +748,6 @@ class Charge_gen_scheme(object):
                     f.write('{:>7.3}'.format(j))
                 f.write('\n')
             f.write('\n\n')
+
 
 

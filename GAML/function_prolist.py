@@ -57,8 +57,7 @@
                    self.symmetry_list, self.symmetry_length
 
                 For offset_list;
-                    self.offset_list, self.offset_ndx_list, self.bool_offset_0, self.offset_0_ndx,
-                    self.bool_offset_1, self.offset_1_ndx
+                    self.offset_list, self.offset_ndx_list, self.offset_0_ndx, self.offset_1_ndx
 
                 For counter_list;
                     self.reflist    """
@@ -158,8 +157,7 @@
 
 
     def _f_pro_symmetry_list(self,symmetry_list,offset_list=None):
-        """For this method, the final processed parameters are, pro_symmetry_list, pro_offset,
-           self.bool_offset_0, self.bool_offset_1"""
+        """For this method, the final processed parameters are, pro_symmetry_list, pro_offset"""
 
 
         if offset_list is None:
@@ -182,8 +180,6 @@
         lth = 0
         count = 0
         bool_unique = False
-        self.bool_offset_0 = False
-        self.bool_offset_1 = False
         self.offset_0_ndx = 0
         self.offset_1_ndx = 0
         self.offset_ndx_list = []
@@ -216,16 +212,13 @@
                         pro_1D.append(j)
                         if len(offset_list) == 1:
                             if offset_list[0] == j:
-                                self.bool_offset_0 = True
                                 self.offset_0_ndx = count
                                 self.offset_ndx_list.append(count)
                         elif len(offset_list) == 2:
                             if offset_list[0] == j:
-                                self.bool_offset_0 = True
                                 self.offset_0_ndx = count
                                 self.offset_ndx_list.insert(0,count)
                             elif offset_list[1] == j:
-                                self.bool_offset_1 = True
                                 self.offset_1_ndx = count
                                 self.offset_ndx_list.append(count)
                     else:
