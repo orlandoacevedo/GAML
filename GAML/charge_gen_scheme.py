@@ -1,5 +1,5 @@
-from functions import file_size_check, file_gen_new, func_roundoff_error, func_pro_pn_limit
-from function_prolist import Prolist
+from GAML.functions import file_size_check, file_gen_new, func_roundoff_error, func_pro_pn_limit
+from GAML.function_prolist import Prolist
 import random
 
 class Charge_gen_scheme(object):
