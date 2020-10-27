@@ -3,7 +3,7 @@ from GAML.charge_gen_scheme import Charge_gen_scheme
 import random
 
 
-class GAML_main(Charge_gen_scheme):
+class GAML(Charge_gen_scheme):
 
     def __init__(self,*args,**kwargs):
 

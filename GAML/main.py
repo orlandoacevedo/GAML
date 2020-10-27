@@ -2,9 +2,9 @@ from GAML.charge_gen_range import Charge_gen_range
 from GAML.charge_gen_scheme import Charge_gen_scheme
 from GAML.file_gen_gaussian import File_gen_gaussian
 from GAML.file_gen_gromacstop import File_gen_gromacstop
-from GAML.GAML_main import GAML_main
+from GAML.gaml import GAML
 from GAML.file_gen_mdpotential import File_gen_mdpotential
-from GAML.GAML_autotrain import GAML_autotrain
+from GAML.gaml_autotrain import GAML_autotrain
 from GAML.fss_analysis import FSS_analysis
 from GAML.parsecmd import parsecmd
 from GAML.parsefile import parsefile
@@ -33,7 +33,7 @@ def run(fdict):
         elif cmd == 'file_gen_gromacstop':
             fp = File_gen_gromacstop(**fdict)
         elif cmd == 'gaml':
-            fp = GAML_main(**fdict)
+            fp = GAML(**fdict)
         elif cmd == 'fss_analysis':
             fp = FSS_analysis(**fdict)
         elif cmd == 'file_gen_mdpotential':
