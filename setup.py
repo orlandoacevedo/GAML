@@ -33,8 +33,8 @@ setup(
         "Intended Audience :: Developers",
         "Topic :: Software Development :: Build Tools",
         "Programming Language :: Python :: 3",
-        "Topic :: Scientific/Engineering :: Chemistry"
-        "Topic :: Scientific/Engineering :: Visualization"
+        "Topic :: Scientific/Engineering :: Chemistry",
+        "Topic :: Scientific/Engineering :: Visualization",
     ],
     author='Orlando Acevedo',
     author_email='orlando.acevedo@miami.edu',
