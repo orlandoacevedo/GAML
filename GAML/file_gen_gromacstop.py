@@ -11,7 +11,7 @@ class File_gen_gromacstop(object):
     """
 
     def __init__(self,*args,**kwargs):
-        self.log = {'nice':True,}
+        self.log = {'nice':True,'info':''}
 
         if 'reschoose' in kwargs and kwargs['reschoose'] is not None:
             if isinstance(kwargs['reschoose'],str):
@@ -86,7 +86,7 @@ class File_gen_gromacstop(object):
         if 'charge_path' in kwargs and kwargs['charge_path'] is not None:
             # func_file_input
             charge_path = kwargs['charge_path']
-            if isinstance(charge_path,str):           
+            if isinstance(charge_path,str):
                 self.log = file_size_check(charge_path,fsize=50)
                 if not self.log['nice']: return
                 self.file_line_chargepath = charge_path
@@ -174,11 +174,11 @@ class File_gen_gromacstop(object):
             self.log['nice'] = False
             self.log['info'] = 'Error: the parameter symmetry_list is not correctly defined'
             return
-    
+
 
         dump_value = self._f_pro_topfile(self.toppath)
         if not self.log['nice']: return
-        
+
         # check the relation topfile with symmetry_list
         if self.symmetry_list is None:
             self.symmetry_list = list(range(len(self.atomndx)))
@@ -202,7 +202,7 @@ class File_gen_gromacstop(object):
             elif len(i) > lth:
                 ls.append(count)
             count += 1
-            
+
         if len(ls) > 0:
             print('Warning: the number of charges are bigger than the number of atoms in the topfile')
             print('       : truncation will happen, only the number of leading charges will be used')
@@ -271,7 +271,7 @@ class File_gen_gromacstop(object):
                         break
                     subline = self.protopfile[j]
                     subltmp = self.procomments(subline).split()
-                    
+
                     if len(subltmp) == 0 or (len(subltmp) > 0 and subltmp[0][0] in ['#',';']):
                         j += 1
                         continue
@@ -283,10 +283,10 @@ class File_gen_gromacstop(object):
                                            'Error: wrong entry,\n' + \
                                            subline
                         return 0
-                    
+
                     j += 1
                 i = j
-            
+
             elif line == '[moleculetype]':
                 j = i + 1
                 while True:
@@ -294,7 +294,7 @@ class File_gen_gromacstop(object):
                         break
                     subline = self.protopfile[j]
                     subltmp = self.procomments(subline).split()
-                    
+
                     if len(subltmp) == 0 or (len(subltmp) > 0 and subltmp[0][0] in ['#',';']):
                         j += 1
                         continue
@@ -306,7 +306,7 @@ class File_gen_gromacstop(object):
                                            'Error: wrong entry,\n' + \
                                            subline
                         return 0
-                    
+
                     j += 1
                 i = j
 
@@ -318,7 +318,7 @@ class File_gen_gromacstop(object):
                         break
                     subline = self.protopfile[j]
                     subltmp = self.procomments(subline).split()
-                    
+
                     if len(subltmp) == 0 or (len(subltmp) > 0 and subltmp[0][0] in ['#',';']):
                         j += 1
                         continue
@@ -330,13 +330,13 @@ class File_gen_gromacstop(object):
                         return 0
                     else:
                         ls.append(j)
-                    
+
                     j += 1
 
                 if len(ls) > 0:
                     atomndx.append(ls)
                 i = j
-                
+
             elif line == '[molecules]':
                 j = i + 1
                 while True:
@@ -344,7 +344,7 @@ class File_gen_gromacstop(object):
                         break
                     subline = self.protopfile[j]
                     subltmp = self.procomments(subline).split()
-                    
+
                     if len(subltmp) == 0 or (len(subltmp) > 0 and subltmp[0][0] in ['#',';']):
                         j += 1
                         continue
@@ -355,17 +355,17 @@ class File_gen_gromacstop(object):
                         self.log['info'] = 'Error: wrong top file input\n' + \
                                            'Error: wrong entry,\n' + \
                                            subline
-                        return 0                        
+                        return 0
                     j += 1
-                i = j    
-            
+                i = j
+
             else:
                 i += 1
 
         if len(syslist) == 0 and len(molndx) == 0:
             self.log['nice'] = False
             self.log['info'] = 'Error: topfile format is wrong, no [moleculetype] nor [molecules] entry is found!'
-            return 0 
+            return 0
 
 
         # adjust the directives' sequence
@@ -384,13 +384,13 @@ class File_gen_gromacstop(object):
                 self.log['nice'] = False
                 self.log['info'] = 'Error: topfile format is wrong\n' + \
                                    '     : for residue' + res + 'the corresponded [atoms] directive is not found'
-                return 0 
+                return 0
 
         # select the residue based on given parameter, self.reschoose
         # self.atomtypendx, self.atomndx
         self.atomtypendx = atomtypendx
         if self.reschoose.upper() != 'ALL':
-            
+
             count = 0
             self.atomndx = []
             for choose in syslist:
@@ -435,7 +435,7 @@ class File_gen_gromacstop(object):
                                                'Error: symmetry_list:\n' + line_1[:-1] + '\n' + line[:-1]
                             return 0
                 refatomtype.append(atype)
-        
+
         totatomtype = []
         for i in self.atomtypendx:
             ltmp = self.protopfile[i].split()
@@ -481,7 +481,7 @@ class File_gen_gromacstop(object):
                 for i in atomlist:
                     if i == atype:
                         snm = self.atomndx[scount]
-                        
+
                         line = topfile[snm]
                         ltmp = self.procomments(line).split()
                         subline = ''
@@ -493,9 +493,9 @@ class File_gen_gromacstop(object):
                             subline += '{:>8}  '.format(ch)
                         topfile[snm] = subline + '\n'
                     scount += 1
-                    
+
                 count += 1
-                            
+
             self.outfile.append(topfile)
 
         return 1
@@ -512,7 +512,7 @@ class File_gen_gromacstop(object):
             print('  [ atoms ]')
             for i in self.atomndx:
                 print(self.outfile[0][i],end='')
-            
+
             print('\nDo you want to continue? ( {:} topfiles will be generated ). y/yes, else quit'.format(self.gennm))
             print('This will generate \'top\' files >',end='    ')
             get_input = input()
@@ -522,7 +522,7 @@ class File_gen_gromacstop(object):
             else:
                 print('\nGreat! Going to generate files ...\n')
                 bo = True
-                
+
         if bo:
             topnamelist = []
             for top in self.outfile:
@@ -534,7 +534,7 @@ class File_gen_gromacstop(object):
 
             fnamelist = self.fname + '_NameList'
             fnamelist = file_gen_new(fnamelist,fextend='txt',foriginal=False)
-            
+
             with open(fnamelist,mode='wt') as f:
                 f.write('# This is a collection of all the generated GROMACS topfile names \n')
                 f.write('# The topfile used is:\n')

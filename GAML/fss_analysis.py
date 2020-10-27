@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 class FSS_analysis(object):
 
     def __init__(self,**kwargs):
-        self.log = {'nice':True,}
+        self.log = {'nice':True,'info':''}
 
         if 'file_path' in kwargs and kwargs['file_path'] is not None:
             self.filepath = kwargs['file_path']
@@ -15,7 +15,7 @@ class FSS_analysis(object):
             self.log['nice'] = False
             self.log['info'] = 'Error: no file inputs'
             return
-        
+
 
         if 'stepsize' in kwargs and kwargs['stepsize'] is not None:
             try:
@@ -28,7 +28,7 @@ class FSS_analysis(object):
                 return
         else:
             self.stepsize = 0.01
-            
+
 
         if 'percent' in kwargs and kwargs['percent'] is not None:
             try:
@@ -41,7 +41,7 @@ class FSS_analysis(object):
                 return
         else:
             self.percent = 0.95
-            
+
 
         if 'error_tolerance' in kwargs and kwargs['error_tolerance'] is not None:
             try:
@@ -58,14 +58,14 @@ class FSS_analysis(object):
             self.bool_abscomp = False if kwargs['bool_abscomp'] is False else True
         else:
             self.bool_abscomp = True
-            
+
 
         if 'cut_keyword' in kwargs and kwargs['cut_keyword'] is not None:
             self.cut_keyword = kwargs['cut_keyword']
         else:
             self.cut_keyword = 'MAE'
 
-        
+
         if 'pallette_nm' in kwargs and kwargs['pallette_nm'] is not None:
             try:
                 self.pallette_nm = int(kwargs['pallette_nm'])
@@ -77,7 +77,7 @@ class FSS_analysis(object):
                 return
         else:
             self.pallette_nm = 50
-            
+
 
         if 'atomtype_list' in kwargs and kwargs['atomtype_list'] is not None:
             if isinstance(kwargs['atomtype_list'],list):
@@ -91,31 +91,27 @@ class FSS_analysis(object):
                 return
         else:
             self.atomtype_list = None
-            
+
 
         if 'fname' in kwargs and kwargs['fname'] is not None:
             self.fname = kwargs['fname']
         else:
             self.fname = 'FSS_analysis'
-            
+
 
         if 'color_map' in kwargs and kwargs['color_map'] is not None:
             self.color_map = kwargs['color_map']
         else:
             self.color_map = 'rainbow'
-            
 
-        self._func_ready()
-        if not self.log['nice']: return
 
-        
 
     def func_fss(self):
-        
+
         self.log,chargehvap = func_file_input(self.filepath,bool_tail=True,cut_keyword=self.cut_keyword,
                                               bool_force_cut_kw=True)
         if not self.log['nice']: return [],[],[]
-        
+
         # filter the list using the error_tolerance
         prolist = []
         i = 0
@@ -141,9 +137,10 @@ class FSS_analysis(object):
         else:
             if self.atomtype_list is not None and len(prolist[0]) - 1 != len(self.atomtype_list):
                 self.log['nice'] = False
-                self.log['info'] = 'Error: the input file and atomtype_list are not corresponded'
+                self.log['info'] = 'Error: the input file and atomtype_list are not corresponded\n' + \
+                                   '{:}\n{:}'.format(self.atomtype_list,prolist[0])
                 return [],[],[]
-                
+
 
         valuelist = []
         i = 0
@@ -158,14 +155,14 @@ class FSS_analysis(object):
             rmax = max(ls)
 
             lp = []
-            while rmin <= rmax:    
+            while rmin <= rmax:
                 count = 0
                 for per in ls:
                     if per >= rmin and per < rmin + self.stepsize:
                         count += 1
                 lp.append(count)
                 rmin += self.stepsize
-            
+
             self.log,atmp,btmp = func_gen_range(lp,percent=self.percent)
             if not self.log['nice']: return [],[],[]
 
@@ -173,7 +170,7 @@ class FSS_analysis(object):
             lt.append( round(chmin + self.stepsize * atmp,5) )
             lt.append( round(chmin + self.stepsize * btmp,5) )
             valuelist.append(lt)
-            
+
             i += 1
 
 
@@ -181,16 +178,16 @@ class FSS_analysis(object):
         newlist = []
         for chargepair in prolist:
             data_bool = True
-            i = 0 
+            i = 0
             for per in chargepair[:-1]:
-                if per >= valuelist[i][1] or per < valuelist[i][0]:            
+                if per >= valuelist[i][1] or per < valuelist[i][0]:
                     data_bool = False
                     break
                 i += 1
             if data_bool:
                 newlist.append(chargepair)
-                
-                
+
+
         if len(newlist) <= 50:
             self.log['nice'] = False
             self.log['info'] = 'Error: the percent parameter is not big enough to maintain the data sets\n' + \
@@ -211,8 +208,8 @@ class FSS_analysis(object):
             return [],[],[]
         else:
             print('\nProcessing ...\n')
-            
-        
+
+
         i = 0
         stderrlist = []
         plotlist = []
@@ -231,7 +228,7 @@ class FSS_analysis(object):
             valuerangelist.append([rmin,rmax])
 
             lp = []
-            while rmin <= rmax:    
+            while rmin <= rmax:
                 count = 0
                 for per in ls:
                     if per >= rmin and per < rmin + step:
@@ -244,9 +241,9 @@ class FSS_analysis(object):
                 lp[-1] += t
 
             # note, the plotlist is not normalized
-            
+
             plotlist.append(lp)
-            
+
 
             aver = sum(ls) / len(ls)
             delta = max(ls) - min(ls)
@@ -262,14 +259,14 @@ class FSS_analysis(object):
                 stderrlist.append(total)
 
             i += 1
-            
+
 
         return stderrlist,plotlist,valuerangelist
 
 
 
-    def _func_ready(self):
-             
+    def run(self):
+
         stderrlist,plotlist,self.valuerangelist = self.func_fss()
         if not self.log['nice']: return
 
@@ -286,9 +283,9 @@ class FSS_analysis(object):
                 ls.append(j/rmax)
             self.prolist.append(ls)
 
-            
+
         # prepare the y_ticks for the plot
-        
+
         self.yticklist = []
         count = 0
         for i in self.valuerangelist:
@@ -319,8 +316,8 @@ class FSS_analysis(object):
             line += ' {:>6} '.format(i)
         line = '#' + line[1:] + '\n\n'
         self.profile.append(line)
-        
-        i = 0  
+
+        i = 0
         while i < self.pallette_nm:
             line = ''
             for j in plotlist:
@@ -333,20 +330,20 @@ class FSS_analysis(object):
     def file_print(self):
 
         self.figure_plot()
-        
+
         pfname = file_gen_new(self.fname,fextend='txt',foriginal=False)
-        
+
         with open(pfname,mode='wt') as f:
             f.write('# This is the final calculation result, which is not normalized \n\n')
             f.write('# The corresponded parameters are: \n\n')
             f.write('# The input file used is: \n')
             f.write('#     {:s} \n\n'.format(self.filepath))
-            
+
             f.write('# The error_tolerance is: < {} > \n'.format(self.error_tolerance))
             f.write('# The percent_range is: < {} > \n'.format(self.percent))
             f.write('# The stepsize is: < {} > \n'.format(self.stepsize))
             f.write('# The plot pallette_number is: < {} > \n\n\n'.format(self.pallette_nm))
-            
+
             f.write('# Note: each column is corresponded to its own data_range \n')
             f.write('#       and those data_ranges are the final optimal charge_range \n\n')
             f.write('# For each different atomtype, the charge_range is: \n')
@@ -358,7 +355,7 @@ class FSS_analysis(object):
                 f.write('    {:>8.3f}  {:>8.3f} \n'.format(j[0],j[1]))
                 i += 1
 
-            f.write('\n\n')              
+            f.write('\n\n')
             f.write('# From the Feature Statistical Standard Error Selection,\n')
             f.write('# the most influenced atomtype sequence is: \n')
             f.write('# ')
@@ -376,16 +373,16 @@ class FSS_analysis(object):
 
 
     def figure_plot(self):
-  
+
         cmap = plt.get_cmap(self.color_map)
         fig = plt.figure(facecolor='w',figsize=(10,6))
-        
+
         ax = fig.add_subplot(111)
         ax.set_yticks(range(len(self.yticklist)))
         ax.set_yticklabels(self.yticklist)
         ax.get_xaxis().set_visible(False)
         ax.set_title('Error Tolerance: {}, Percent: {}'.format(self.error_tolerance,self.percent))
-        
+
         getcmap = ax.imshow(self.prolist,cmap=cmap,aspect='auto')
         cb = plt.colorbar(mappable=getcmap,shrink=1.0,pad=0.02)
         cb.set_ticks([])

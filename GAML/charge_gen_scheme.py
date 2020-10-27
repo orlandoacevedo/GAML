@@ -6,7 +6,7 @@ class Charge_gen_scheme(object):
     """Randomly generate the charge pairs based on the given charge ranges"""
 
     def __init__(self,*args,**kwargs):
-        self.log = {'nice':True,}
+        self.log = {'nice':True,'info':''}
 
         if 'gennm' in kwargs and kwargs['gennm'] is not None:
             try:
@@ -32,7 +32,7 @@ class Charge_gen_scheme(object):
                 return
         else:
             self.nmround = 2
-            
+
 
         if 'total_charge' in kwargs and kwargs['total_charge'] is not None:
             try:
@@ -43,7 +43,7 @@ class Charge_gen_scheme(object):
                 return
         else:
             self.total_charge = 0.0
-            
+
 
         if 'fname' in kwargs and kwargs['fname'] is not None:
             if isinstance(kwargs['fname'],str):
@@ -56,7 +56,7 @@ class Charge_gen_scheme(object):
                 self.log['info'] = 'Error: parameter fname is not correctly defined'
         else:
             self.fname = 'ChargeRandomGen'
-            
+
 
         if 'in_keyword' in kwargs and kwargs['in_keyword'] is not None:
             if isinstance(kwargs['in_keyword'],str):
@@ -125,7 +125,7 @@ class Charge_gen_scheme(object):
             except ValueError:
                 self.log['nice'] = False
                 self.log['info'] = 'Error: the parameter threshold has to be greater than 0.3'
-                return 
+                return
         else:
             self.threshold = 0.8
 
@@ -147,7 +147,7 @@ class Charge_gen_scheme(object):
         if self.bool_neutral and self.nmround < 2:
             self.log['nice'] = False
             self.log['info'] = 'Error: When bool_neutral is set to True, the nmround should be not less than 2'
-            return 
+            return
 
 
         if 'charge_path' in kwargs and kwargs['charge_path'] is not None:
@@ -200,7 +200,7 @@ class Charge_gen_scheme(object):
             self.log['nice'] = False
             self.log['info'] = 'Error: the charge_path and symmetry_list are not corresponded'
             return
-        
+
 
         ndxreflist = [i[0] for i in self.reflist] + [i[2] for i in self.reflist]
         if len(ndxreflist) != 0 and len(self.charge_list) < max(ndxreflist):
@@ -221,7 +221,7 @@ class Charge_gen_scheme(object):
                     self.log['info'] = 'Error: the pn_limit is in conflict with counter_list\n' + \
                                         '     : they have to be one in positive and the other in negative'
                     return
-        
+
         # softly update self.prolist.offset_ndx_list to avoid "counter_list" conflicts
         if len(self.prolist.offset_list) == 2:
             if self.prolist.offset_ndx_list[1] in ndxreflist:
@@ -241,12 +241,12 @@ class Charge_gen_scheme(object):
               self.charge_list; self.bool_neutral; self.nmround; self.threshold
            Result:
               return a charge_list meeting the needed low-high bound"""
-         
+
         if self.bool_neutral:
             calc_nmround = self.nmround - 1
         else:
             calc_nmround = self.nmround
-        
+
         multibase = 10 ** calc_nmround
         for i in range(len(self.charge_list)):
             chmin = self.charge_list[i][0]
@@ -277,7 +277,7 @@ class Charge_gen_scheme(object):
                 charge_path, with defined chargeRange, either can be a 2D list, or a string file name
            Result:
                 charge_list"""
-        
+
         if isinstance(charge_path,list):
             # change the list name
             charge_list = charge_path
@@ -298,7 +298,7 @@ class Charge_gen_scheme(object):
 
             self.log = file_size_check(charge_path,fsize=100)
             if not self.log['nice']: return []
-            
+
             charge_list = []
             with open(charge_path,mode='rt') as f:
                 while True:
@@ -319,7 +319,7 @@ class Charge_gen_scheme(object):
                                 bo = True
                         else:
                             bo = True
-                        
+
                         if bo:
                             self.log['nice'] = False
                             self.log['info'] = 'Error: Wrong for the input file, in line\n' + \
@@ -332,7 +332,7 @@ class Charge_gen_scheme(object):
     def run(self,filterlist=[]):
         """Randomly generate charge_piars based on the given charge range,
            symmetry_list and counter_list with no any repeats in 2D filterlist
-           
+
            Result:
                 self.chargepair with self-exclusive number of self.gennm pairs"""
 
@@ -376,7 +376,7 @@ class Charge_gen_scheme(object):
             if trynmcnt > trynmtot:
                 self.log['nice'] = False
                 self.log['info'] = 'Error: the gennm is too big for pairs generating'
-                return self.chargepair
+                return
             trynmcnt += 1
 
             totcharge = 0.0
@@ -406,7 +406,7 @@ class Charge_gen_scheme(object):
                         chj = chj - self.threshold if chj > 0 else chj - self.threshold
                         chi = 0 - chj * i[3] / i[1]
                         bo = False
-                    
+
                     # apply self.pn_limit
                     if bo and ( symi in pnlist ):
                         v = vulist[pnlist.index(symi)]
@@ -424,7 +424,7 @@ class Charge_gen_scheme(object):
                         subcharp.append([symi,chi])
                         subcharp.append([symj,chj])
                         break
-            
+
             # based on copysymmetry, calculate new offlist for self.prolist.offset_ndx_list
             offlist = []
             for i,tmp in enumerate(self.prolist.offset_list):
@@ -449,13 +449,13 @@ class Charge_gen_scheme(object):
                     ndxlth = len(ndx)
                     ix = random.randrange(ndxlth)
                     j = ndx[ix]
-                
+
                 chmin = int( self.charge_list[j][0] * multibase )
                 chmax = int( self.charge_list[j][1] * multibase )
 
                 while True:
                     rch = random.randrange(chmin,chmax)
-                    
+
                     # apply self.bool_nozero & self.pn_limit
                     bo = True
                     if self.bool_nozero and rch == 0: bo = False
@@ -484,7 +484,7 @@ class Charge_gen_scheme(object):
                         ndxlth = len(ndx)
                         ix = random.randrange(ndxlth)
                         j = ndx[ix]
-                    
+
                     chmin = int( self.charge_list[j][0] * multibase )
                     chmax = int( self.charge_list[j][1] * multibase )
 
@@ -511,7 +511,7 @@ class Charge_gen_scheme(object):
                     ndxlth_1 = len(ndx_1)
                     ix = random.randrange(ndxlth_1)
                     j = ndx_1[ix]
-                    
+
                 chmin_1 = int( self.charge_list[j][0] * multibase )
                 chmax_1 = int( self.charge_list[j][1] * multibase )
 
@@ -523,14 +523,14 @@ class Charge_gen_scheme(object):
                     ndxlth_0 = len(ndx_0)
                     ix = random.randrange(ndxlth_0)
                     j = ndx_0[ix]
-                    
+
                 chmin_0 = self.charge_list[j][0]
                 chmax_0 = self.charge_list[j][1]
 
                 subcharsum = 0.0
                 bool_charge_index = True
                 offset_totcharge = totcharge
-                for dump in range(self.offset_nm):                    
+                for dump in range(self.offset_nm):
                     while True:
                         genrch = random.randrange(chmin_1,chmax_1)
                         genrch = round(float(genrch)/multibase,calc_nmround)
@@ -543,7 +543,7 @@ class Charge_gen_scheme(object):
                                 bo = False
                         if bo:
                             break
-                    
+
                     subcharsum += genrch
                     offset_totcharge += genrch * ndxlth_1
 
@@ -563,7 +563,7 @@ class Charge_gen_scheme(object):
                     if bo:
                         bool_charge_index = False
                         break
-                        
+
                 if bool_charge_index:
                     genrch = round(subcharsum/self.offset_nm,calc_nmround)
 
@@ -606,7 +606,7 @@ class Charge_gen_scheme(object):
                         ( isinstance(i,list) and isinstance(j[0],list) and i == j[0] ):
                         pair.append(j[1])
                         break
-            
+
             # now, it comes to most annoying and time-consuming part
             # again take care of self.threshold & self.pn_limit & self.bool_nozero
             # Caution: the indices in self.reflist has to be ruled first
@@ -624,12 +624,12 @@ class Charge_gen_scheme(object):
                         boall = False
                         break
                 if boall: break
-                
+
                 # oppenent but not itself
                 while True:
                     pt = random.randrange(len(pair))
                     if ( pt not in ndxreflist ) and ( pt != rt ): break
-                    
+
                 ndx = lglist[rt]
                 ndy = lglist[pt]
                 pch = pair[pt]
@@ -671,14 +671,14 @@ class Charge_gen_scheme(object):
                     pair[rt] = tmp_rch
                     pair[pt] = tmp_pch
                     boall = True
-                
+
                 # if errors happen, start from the beginning
                 if not boall: continue
 
 
             if self.bool_neutral:
                 pair = [round(i*self.total_charge,self.nmround) for i in pair]
-            
+
             # self inspection
             if not self.func_bool_repeats(self.chargepair,pair):
                 # filter inspection
@@ -697,15 +697,14 @@ class Charge_gen_scheme(object):
                     bool_ndx = False
                     break
                 k += 1
-                
+
             if bool_ndx:
                 return True
-            
+
         return False
 
 
     def file_print(self):
-
         fname = file_gen_new(self.fname,fextend='txt')
         with open(fname,mode='wt') as f:
             f.write('# This is the randomly generated charge pairs based on charge_range_list \n\n')
@@ -725,11 +724,11 @@ class Charge_gen_scheme(object):
                 tmp = [str(i[0]+1) + i[1] for i in self.pn_limit]
                 f.write('# The pn_limit used is:\n')
                 f.write('#   {:s}\n\n'.format(str(tmp)))
-                
+
             f.write('# The total_charge is: < {:} >\n'.format(self.total_charge))
             f.write('# The bool_neutral is: < {:s} >\n'.format('ON' if self.bool_neutral else 'OFF'))
             f.write('# The bool_nozero is: < {:s} >\n\n'.format('ON' if self.bool_nozero else 'OFF'))
-            
+
             if self.charge_path is None:
                 f.write('# The used charge_range file is NotDefined\n')
             else:
@@ -748,6 +747,5 @@ class Charge_gen_scheme(object):
                     f.write('{:>7.3}'.format(j))
                 f.write('\n')
             f.write('\n\n')
-
 
 

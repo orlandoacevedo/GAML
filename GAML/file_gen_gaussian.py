@@ -5,9 +5,9 @@ import random
 
 class File_gen_gaussian(object):
     """
-    This class is used to generate Gaussian com files based on input file. Since this input file 
+    This class is used to generate Gaussian com files based on input file. Since this input file
     specifically comes from GROMACS MD simulation, so its corresponded topfile has to be given.
-    
+
     Specially, the [atomtypes] directive in topfile can be added a name string to identify
     the real_atom type. For example, if we has some inputs like;
 
@@ -22,7 +22,7 @@ class File_gen_gaussian(object):
       CY-C   12.011   0.032     A      0.355      0.29288
 
     However, this modification is not a mandatory.
-    
+
 
     To make multi-molecular system generation more precise and meaningful, the shortest distance
     between any molecules is no bigger than select_range, by default, this number is set to 10 Angstrom.
@@ -30,7 +30,7 @@ class File_gen_gaussian(object):
     """
 
     def __init__(self,*args,**kwargs):
-        self.log = {'nice':True,}
+        self.log = {'nice':True,'info':''}
 
         if 'toppath' in kwargs and kwargs['toppath'] is not None:
             self.toppath = kwargs['toppath']
@@ -49,14 +49,14 @@ class File_gen_gaussian(object):
             self.log['nice'] = False
             self.log['info'] = 'Error: the parameter file_path is missing'
             return
-        
-        self._f_pro_toppath(self.toppath)
+
+        self.pro_toppath(self.toppath)
         if not self.log['nice']: return
-        
-        self._f_pro_file_path(self.file_path)
+
+        self.pro_file_path(self.file_path)
         if not self.log['nice']: return
-        
-        self._f_remove_periodic()
+
+        self.func_remove_periodic()
 
         if 'select_range' in kwargs and kwargs['select_range'] is not None:
             try:
@@ -70,7 +70,7 @@ class File_gen_gaussian(object):
         else:
             self.select_range = 10
 
-        self._f_pro_selections()
+        self.pro_selections()
 
         if 'gennm' in kwargs and kwargs['gennm'] is not None:
             try:
@@ -81,26 +81,26 @@ class File_gen_gaussian(object):
                 self.log['nice'] = False
                 self.log['info'] = 'Error: the parameter gennm has to be a number\n' + \
                                    'Error gennm: ' + kwargs['gennm']
-                return            
-        elif len(self.prolist) < 5:               
+                return
+        elif len(self.prolist) < 5:
             self.gennm = len(self.prolist)
         else:
             self.gennm = 5
 
-        self._f_random_selections()
+        self.random_selections()
 
 
         if 'basis_set' in kwargs and kwargs['basis_set'] is not None:
             self.basis_set = kwargs['basis_set']
         else:
             self.basis_set = '# HF/6-31G(d) Pop=CHelpG'
-            
+
 
         if 'charge_spin' in kwargs and kwargs['charge_spin'] is not None:
             self.charge_spin = str(kwargs['charge_spin'])
         else:
             self.charge_spin = '0 1'
-            
+
 
         if 'fname' in kwargs and kwargs['fname'] is not None:
             self.fname = str(kwargs['fname'])
@@ -111,7 +111,7 @@ class File_gen_gaussian(object):
         if not self.log['nice']: return
 
 
-    def _f_pro_toppath(self,toppath):
+    def pro_toppath(self,toppath):
         """process the input top_file, the defined_class parameters are, self.mol,
            self.mollist, self.atom, self.atomnm"""
 
@@ -128,7 +128,7 @@ class File_gen_gaussian(object):
             return (atom_name_string.upper() in [i.upper() for i in atom_name_list])
 
 
-        def f_atomtype(atomtype):
+        def func_atomtype(atomtype):
             """This method is used to check and verify the atomtype"""
 
             print('The following real_atom_type will be used for the com file generations')
@@ -139,7 +139,7 @@ class File_gen_gaussian(object):
                     if len(i[0]) == 1:
                         proatomtype.append([i[0],i[0]])
                         print('Number ',count,'  ',i[0],' --> ',i[0])
-                    else: 
+                    else:
                         if check_periodic_table(i[0][:2]):
                             proatomtype.append([i[0],i[0][:2]])
                             print('Number ',count,'  ',i[0],' --> ',i[0][:2])
@@ -159,7 +159,7 @@ class File_gen_gaussian(object):
 
         with open(toppath,mode='rt') as f:
             infile = f.readlines()
-        
+
         i = 0
         atomtype = []
         atom = []
@@ -174,7 +174,7 @@ class File_gen_gaussian(object):
                     if char != ' ' and char != '\t':
                         strtmp += char
                 line = strtmp
-            
+
             if line == '[atomtypes]':
                 j = i + 1
                 while True:
@@ -194,8 +194,8 @@ class File_gen_gaussian(object):
                                                '     :' + line
                             return
                         j += 1
-                i = j 
-                
+                i = j
+
             elif line == '[atoms]':
                 j = i + 1
                 while True:
@@ -216,7 +216,7 @@ class File_gen_gaussian(object):
                                                '     :' + line
                             return
                         j += 1
-                i = j 
+                i = j
 
             elif line == '[molecules]':
                 j = i + 1
@@ -239,7 +239,7 @@ class File_gen_gaussian(object):
                             return
                         j += 1
                 i = j
-            
+
             else:
                 i += 1
 
@@ -249,7 +249,7 @@ class File_gen_gaussian(object):
         for sys in self.mol:
             i = 0
             ltmp = []
-            while i < len(atom):         
+            while i < len(atom):
                 if atom[i][1] == sys[0]:
                     ltmp.append(atom[i][0])
                 i += 1
@@ -280,10 +280,10 @@ class File_gen_gaussian(object):
                                        'Error atomtype: ' + latom
                     return
 
-        
+
         # modify the atom_type
         while True:
-            atomtype = f_atomtype(atomtype)
+            atomtype = func_atomtype(atomtype)
             print('Do you want to make a modification? y/yes, else continue')
             gt = input()
             if gt.lower() == 'y' or gt.lower() == 'yes':
@@ -309,17 +309,17 @@ class File_gen_gaussian(object):
                         else:
                             print('Warning: the input is wrong, please input again')
                             bool_input = True
-                            
+
                         if bool_input:
                             break
                         atomtype[nm-1][1] = label[1]
-                        
+
                     if not bool_input:
                         print()
                         break
             else:
                 break
-               
+
 
         # self.mollist, self.atomnm
         self.mollist = []
@@ -342,21 +342,21 @@ class File_gen_gaussian(object):
                         ltmp.append(atomtype[j][1])
                         break
             self.atom.append(ltmp)
-            
 
-    
-    def _f_pro_file_path(self,file_path):
+
+
+    def pro_file_path(self,file_path):
         """process the pdbfile, as well as check its relation with the input topfile,
            the defined_class parameters are, self.box_half_length, self.totlist"""
 
         # Attention! Here may have bugs if the pdb file is not generated by GROMACS program
 
         FEXTEND = file_path[file_path.rfind('.')+1:].upper()
-        
+
         # self.totlist
         self.totlist = []
-        
-        if FEXTEND == 'PDB':         
+
+        if FEXTEND == 'PDB':
             with open(file_path,mode='rt') as f:
                 box_length = 0
                 while True:
@@ -371,7 +371,7 @@ class File_gen_gaussian(object):
                             ltmp.append(float(line[46:54]))
                             box_length = max(box_length,*ltmp)
                             self.totlist.append(ltmp)
-                            
+
         elif FEXTEND == 'GRO':
             with open(file_path,mode='rt') as f:
                 title = f.readline()
@@ -400,10 +400,10 @@ class File_gen_gaussian(object):
             return
 
 
-    def _f_remove_periodic(self):
+    def func_remove_periodic(self):
         """remove the periodic molecules, as well as get the Center-Of-Coordinates,
            the defined_class parameters are, self.prototlist, self.avercorlist"""
-        
+
         self.prototlist = []
         self.avercorlist = []
         count = 0
@@ -417,36 +417,36 @@ class File_gen_gaussian(object):
                 x_cor = []
                 y_cor = []
                 z_cor = []
-                while j < res[2]: 
+                while j < res[2]:
                     ltmp.append(self.totlist[count])
                     x_cor.append(self.totlist[count][0])
                     y_cor.append(self.totlist[count][1])
                     z_cor.append(self.totlist[count][2])
                     j += 1
                     count += 1
-                
+
                 lp = []
                 if max(x_cor) - min(x_cor) < self.box_half_length and \
                     max(y_cor) - min(y_cor) < self.box_half_length and \
                     max(z_cor) - min(z_cor) < self.box_half_length:
-                    
+
                     lp.append(sum(x_cor)/len(x_cor))
                     lp.append(sum(y_cor)/len(y_cor))
                     lp.append(sum(z_cor)/len(z_cor))
-                
+
                     ls.append(ltmp)
                     lt.append(lp)
 
                 i += 1
             self.prototlist.append(ls)
             self.avercorlist.append(lt)
-    
 
 
-    def _f_pro_selections(self):
+
+    def pro_selections(self):
         """based on the given select_range, get all the combined residues,
            the defined_class parameters are, self.prolist, the module used, itertools"""
-        
+
         if len(self.mollist) == 1:
             self.prolist = list(range(len(self.prototlist[0])))
         else:
@@ -463,7 +463,7 @@ class File_gen_gaussian(object):
                     y_cor.append(self.avercorlist[count][j][1])
                     z_cor.append(self.avercorlist[count][j][2])
                     count += 1
-                    
+
                 x_cor = sorted(x_cor)
                 y_cor = sorted(y_cor)
                 z_cor = sorted(z_cor)
@@ -474,7 +474,7 @@ class File_gen_gaussian(object):
                         xindex = False
                         break
                     i += 1
-                    
+
                 if xindex:
                     yindex = True
                     i = 1
@@ -483,7 +483,7 @@ class File_gen_gaussian(object):
                             yindex = False
                             break
                         i += 1
-                        
+
                     if yindex:
                         zindex = True
                         i = 1
@@ -492,16 +492,16 @@ class File_gen_gaussian(object):
                                 zindex = False
                                 break
                             i += 1
-                            
+
                         if zindex:
                             self.prolist.append(refcor)
 
 
 
-    def _f_random_selections(self):
+    def random_selections(self):
         """choose the residues, based on given 'gennm' parameters,
            the defined_class parameters are, self.reflist, the module used, random"""
-        
+
         # randomly choose the defined_class residue combinations
         self.reflist = []
         lth = len(self.prolist)
@@ -519,7 +519,7 @@ class File_gen_gaussian(object):
 
     # public method
     def residue_selections(self):
-        
+
         lp = []
         for ndx in self.reflist:
             ls = []
@@ -529,15 +529,15 @@ class File_gen_gaussian(object):
                     ls.append(j)
                 count += 1
             lp.append(ls)
-            
+
 
         i = 0
         proatom = []
         while i < len(self.atom):
             proatom += self.atom[i]
             i += 1
-            
-            
+
+
         chooselist = []
         count = 1
         for res in lp:
@@ -549,7 +549,7 @@ class File_gen_gaussian(object):
             count += 1
 
             lt = []
-            j = 0       
+            j = 0
             for rxyz in res:
                 line = ('{:2}  {:>7} {:>7} {:>7}'.format(proatom[j],rxyz[0],rxyz[1],rxyz[2]))
                 ltmp.append(line)
@@ -562,7 +562,7 @@ class File_gen_gaussian(object):
 
 
     def _prefile(self):
-        """Prepare for print"""        
+        """Prepare for print"""
 
         # the self.resnmprint is used to identify the position of the chosen_residue
         profile = []
@@ -584,8 +584,8 @@ class File_gen_gaussian(object):
         while i < len(self.atom):
             proatom += self.atom[i]
             i += 1
-            
-            
+
+
         self.outfile = []
         pfname = self.fname + '_SYS_ALL'
         for res in profile:
@@ -597,7 +597,7 @@ class File_gen_gaussian(object):
             count += 1
 
             ls = []
-            j = 0       
+            j = 0
             for rxyz in res:
                 line = ('{:2}  {:>7} {:>7} {:>7}'.format(proatom[j],rxyz[0],rxyz[1],rxyz[2]))
                 ltmp.append(line)
@@ -634,25 +634,25 @@ class File_gen_gaussian(object):
         fnamelist = []
         for sys in self.outfile:
             filename = file_gen_new(self.fname,fextend='com',foriginal=False)
-            fnamelist.append(filename)       
+            fnamelist.append(filename)
             with open(filename,mode='wt') as f:
                 for res in sys:
-                    for line in res:              
+                    for line in res:
                         f.write(line)
                         f.write('\n')
-                        
+
 
         pfname = self.fname + '_namelist'
         pfname = file_gen_new(pfname,fextend='txt',foriginal=False)
         with open(pfname,mode='wt') as f:
             f.write('# This file is a name_list of chosen_residue \n\n')
-            
+
             f.write('# The topfile used is:\n')
             f.write('#    {:s}\n\n'.format(self.toppath))
-            
+
             f.write('# The pdbfile used is:\n')
             f.write('#    {:s}\n\n'.format(self.file_path))
-            
+
             f.write('# The value corresponds to the input pdb file residue number \n')
             f.write('# The select_range used is < {:} > Angstrom\n'.format(self.select_range))
 

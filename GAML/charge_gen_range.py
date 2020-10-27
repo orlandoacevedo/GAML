@@ -2,10 +2,10 @@ from GAML.functions import file_gen_new, file_size_check
 from GAML.function_gen_range import func_gen_range
 
 class Charge_gen_range(object):
-    """Generate the charge ranges surrounding the mode number"""   
+    """Generate the charge ranges surrounding the mode number"""
 
     def __init__(self,*args,**kwargs):
-        self.log = {'nice':True,}
+        self.log = {'nice':True,'info':''}
 
         bo = False
         if 'atomnm' in kwargs and kwargs['atomnm'] is not None:
@@ -54,8 +54,8 @@ class Charge_gen_range(object):
             if len(datalist) % self.atomnm != 0:
                 self.log['nice'] = False
                 self.log['info'] = 'Error: wrong input_data_file or atom_number\n' + \
-                                       'Error: input charge_file_path: ' + self.charge_path + '\n' + \
-                                       'Error input atom_number: ' + str(self.atomnm)
+                                   'Error: input charge_file_path: ' + self.charge_path + '\n' + \
+                                   'Error input atom_number: ' + str(self.atomnm)
                 return
 
             # to avoid using an extra numpy module
@@ -65,18 +65,16 @@ class Charge_gen_range(object):
             i = 0
             while i < len(datalist):
                 ls = []
-                j = 0
-                while j < self.atomnm:
+                for j in range(self.atomnm):
                     ls.append(datalist[i])
                     i += 1
-                    j += 1
                 self.profile.append(ls)
         else:
             self.log['nice'] = False
             self.log['info'] = 'Error: the parameter charge_path is missing'
             return
- 
-        
+
+
         if 'percent' in kwargs and kwargs['percent'] is not None:
             try:
                 self.percent = float(kwargs['percent'])
@@ -89,8 +87,8 @@ class Charge_gen_range(object):
                 return
         else:
             self.percent = 0.8
-            
-            
+
+
         if 'stepsize' in kwargs and kwargs['stepsize'] is not None:
             try:
                 self.stepsize = float(kwargs['stepsize'])
@@ -99,11 +97,11 @@ class Charge_gen_range(object):
             except ValueError:
                 self.log['nice'] = False
                 self.log['info'] = 'Error: the parameter stepsize has to be a positive number'
-                return            
+                return
         else:
             self.stepsize = 0.01
 
-            
+
         if 'nmround' in kwargs and kwargs['nmround'] is not None:
             try:
                 self.nmround = int(kwargs['nmround'])
@@ -116,7 +114,7 @@ class Charge_gen_range(object):
         else:
             self.nmround = 3
 
-            
+
         if 'fname' in kwargs and kwargs['fname'] is not None:
             self.fname = str(kwargs['fname'])
         else:
@@ -134,9 +132,9 @@ class Charge_gen_range(object):
 
             lmin = charmin = min(atomcharge)
             lmax = max(atomcharge)
-            
+
             rlist = []
-            while lmin < lmax:          
+            while lmin < lmax:
                 lcount = 0
                 # Warning! to improve the efficiency, here can be debugged
                 for i in atomcharge:
@@ -157,7 +155,6 @@ class Charge_gen_range(object):
 
 
     def file_print(self):
-        
         fname = file_gen_new(self.fname,fextend='txt',foriginal=True)
         with open(fname,mode='wt') as f:
             f.write('# This is the generated charge_range based on the input charge_file \n')

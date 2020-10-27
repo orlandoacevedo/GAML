@@ -1,20 +1,21 @@
+import os
+
 def file_size_check(path,fsize=10):
     """This function is used to check the file existence and size,
        the unit of size is in megabety"""
-    
-    import os
-    log = {'nice':True,}
+
+    log = {'nice':True,'info':''}
     try:
         sizetmp = os.stat(path).st_size
         if sizetmp/1024/1024 > fsize:
             log['nice'] = False
             log['info'] = 'Error: the file size is far larger than %f MB' % fsize,
-            
+
     except IOError:
         log['nice'] = False
         log['info'] = 'Error : cannot open the file!\n' + \
                       'Error : ' + path
-        
+
     return log
 
 
@@ -26,7 +27,7 @@ def file_gen_new(fname,fextend='txt',foriginal=True,bool_dot=True):
        it will override the parameter in 'fextend', this behavior can be
        turned off by set 'bool_dot' to False. The parameter 'foriginal'
        is used to set filename be counted or not"""
-    
+
     filename = fname
     pos = filename.rfind('.')
     if bool_dot and pos != -1:
@@ -34,14 +35,14 @@ def file_gen_new(fname,fextend='txt',foriginal=True,bool_dot=True):
         fextend = filename[pos:]
     else:
         fextend = '.' + fextend
-    
+
     if foriginal is True:
         try:
             f = open(fname + fextend)
             f.close()
         except:
             return fname + fextend
-        
+
     i = 1
     filename = fname
     while True:
@@ -59,7 +60,7 @@ def file_gen_new(fname,fextend='txt',foriginal=True,bool_dot=True):
 def func_file_input(filepath,comment_char='#',dtype=float,bool_tail=True,in_keyword='PAIR',
                     cut_keyword='MAE',bool_force_cut_kw=False,ignore_kw='HEAD'):
     """get the input file, check whether forcing the cut_kw or not"""
-    
+
     profile = []
     log = {'nice':True,}
     with open(filepath,mode='rt') as f:
@@ -103,7 +104,7 @@ def func_file_input(filepath,comment_char='#',dtype=float,bool_tail=True,in_keyw
                     log['info'] = 'Error: The input file format is not correctly defined\n' + \
                                   'Error line: ' + line
                     break
-                
+
     return log,profile
 
 
@@ -168,10 +169,10 @@ def func_pro_pn_limit(string,bool_repeats=True):
        4) '1-p, 2:p, 3-p, 4p, 5n, 6n, 7-n, 8n, 9n'
        5) '1:p, 2-p, 3p, 4p, 5:n, 6n, 7n, 8-n, 9n'
        6) '1p, 2p, 3p, 4p, 5n, 6n, 7n, 8n, 9n'
-    
+
        The number of space or tab doesn't matter.
        All of those six inputs are equivalent.
-       
+
        The comma is chosen as the delimiter, the key word 'p' and 'n' represent
        'positive' and 'negative' respectively, both its initial and full word
        are OK, they are case-insensitive.
@@ -181,10 +182,10 @@ def func_pro_pn_limit(string,bool_repeats=True):
 
        Note:
            the return value is not sequence based"""
-    
+
     log = {'info':'Error: the parameter pn_limit is not correctly defined',
            'nice':True, }
-        
+
     line = string.replace(',',' ').replace(':',' ').replace('-',' ').lower()
     line = line.replace('ositive',' ').replace('egative',' ')
 
@@ -215,13 +216,13 @@ def func_pro_pn_limit(string,bool_repeats=True):
                 nl += line[j:i]
             j = i + 1
         i += 1
-        
+
     nvlist = []
     for i in nl.split():
         nvlist.append([int(i),'n'])
     for i in pl.split():
         nvlist.append([int(i),'p'])
-    
+
     if not bool_repeats:
         t = [i[0] for i in nvlist]
         if len(t) != len(set(t)): log['nice'] = False
@@ -236,11 +237,11 @@ def assertion(dtype=None,data=None,small=None,big=None,
     This fuction is used for input parameter's validation
     test, which is fulfilled by the 'try-except' method, but
     with more powerful abilities.
-    
+
     For example, for the string '8', we want it to transfer
     to be an int type with a range not less than number 8,
     and no bigger that 18, thus we can set,
-    
+
     assertion(dtype=int,data='8',small=8,smallclose=True,
               big=18,bigclose=True)
 
@@ -259,14 +260,14 @@ def assertion(dtype=None,data=None,small=None,big=None,
             else:
                 data = float(data)
 
-            bool_ref_small = False  
+            bool_ref_small = False
             if small is not None:
                 if smallclose:
                     if data < small: bool_ref_small = True
                 else:
                     if data <= small: bool_ref_small = True
-                    
-            bool_ref_big = False      
+
+            bool_ref_big = False
             if big is not None:
                 if bigclose:
                     if data > big: bool_ref_big = True
@@ -275,10 +276,10 @@ def assertion(dtype=None,data=None,small=None,big=None,
 
             if bool_ref_small or bool_ref_big:
                 raise ValueError
-                    
+
         except ValueError:
             bool_ref = False
     else:
         bool_ref = False
-        
+
     return bool_ref,data

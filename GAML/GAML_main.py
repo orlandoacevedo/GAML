@@ -60,7 +60,7 @@ class GAML_main(Charge_gen_scheme):
                 return
         else:
             self.cut_keyword = 'MAE'
-        
+
 
         bo = False
         # NOTE: this number no less than 0.1
@@ -92,7 +92,7 @@ class GAML_main(Charge_gen_scheme):
             self.log['nice'] = False
             self.log['info'] = 'Error: the parameter charge_extend_by has to be a positive number'
             return
-        
+
 
         if 'ratio' in kwargs and kwargs['ratio'] is not None:
             self.ratio = kwargs['ratio']
@@ -107,10 +107,10 @@ class GAML_main(Charge_gen_scheme):
                 if cnt == 2:
                     stmp = self.ratio[:self.ratio.find(':')]
                     ratio_ml = 0 if len(stmp.split()) == 0 else float(stmp)
-                    
+
                     stmp = self.ratio[self.ratio.find(':')+1:self.ratio.rfind(':')]
                     ratio_av = 0 if len(stmp.split()) == 0 else float(stmp)
-                    
+
                     stmp = self.ratio[self.ratio.rfind(':')+1:]
                     ratio_mu = 0 if len(stmp.split()) == 0 else float(stmp)
 
@@ -122,7 +122,7 @@ class GAML_main(Charge_gen_scheme):
                     ratio_av = 0 if len(stmp.split()) == 0 else float(stmp)
 
                     ratio_mu = 0.0
-                
+
                 elif cnt == 0:
                     ratio_ml = float(self.ratio)
                     ratio_av = 0.0
@@ -138,12 +138,12 @@ class GAML_main(Charge_gen_scheme):
                     ratio_ml = ratio_ml / tmp
                     ratio_av = ratio_av / tmp
                     ratio_mu = 1.0 - ratio_ml - ratio_av
-                    
+
             except ValueError:
                 self.log['nice'] = False
                 self.log['info'] = 'Error: the parameter ratio is not correctly defined\n' + \
                                    'Error: {:}'.format(kwargs['ratio'])
-                return 
+                return
         else:
             self.ratio = '0.7:0.2:0.1'
             ratio_ml = 0.7
@@ -152,7 +152,7 @@ class GAML_main(Charge_gen_scheme):
 
         # for repeats filtration
         self.totlist = []
-        
+
         if 'file_path' in kwargs and kwargs['file_path'] is not None:
             self.file_path = kwargs['file_path']
             self.profilepath()
@@ -259,7 +259,7 @@ class GAML_main(Charge_gen_scheme):
                     elif ratio_av == 0:
                         ratio_av = 1.0 - (ratio_ml+ratio_mu)
                 self.ratio_new = '{:}:{:}:{:}'.format(ratio_ml,ratio_av,ratio_mu)
-                
+
                 # redefine self.gennm for average
                 self.gennm = int(totnm*ratio_av + 0.5)
                 nm_av = self.gennm
@@ -317,7 +317,7 @@ class GAML_main(Charge_gen_scheme):
                                 if ( self.charge_list[i][0] < 0 and n < 0 ) or \
                                    ( self.charge_list[i][0] > 0 and n > 0 ):
                                     self.charge_list[i][0] = n
-                                
+
                         # high bound
                         tmp = random.randrange(3)
                         if tmp == 1 or tmp == 2:
@@ -339,7 +339,7 @@ class GAML_main(Charge_gen_scheme):
                     self.prochargelist()
                     # rename ATTENTION
                     self.charge_list_new = self.charge_list
-                    
+
                     # generation
                     self.run(filterlist=self.totlist)
                     if not self.log['nice']: return
@@ -354,7 +354,7 @@ class GAML_main(Charge_gen_scheme):
         """process file_path based on self.error_tolerance
            Result:
                 self.mlinlist; self.totlist"""
-        
+
         log = file_size_check(self.file_path,fsize=500)
         if not log['nice']:
             self.log['nice'] = False
@@ -402,14 +402,14 @@ class GAML_main(Charge_gen_scheme):
 
         return 1
 
-            
+
 
     def func_adjust(self,inlist):
         """For a 1D number list, randomly choose a point which is not specified in refcntlist
            to fit its balanced-length summation to be equal to total, during the process, this
            value is rounded by nmround and set to be smaller than threshold, this adjustment
            is always less than 0.1
-           
+
            Parameter:
                 inlist, self.lglist, self.reflist, self.totol_charge, self.nmround, self.threshold
            Return:
@@ -428,14 +428,14 @@ class GAML_main(Charge_gen_scheme):
         for i in self.reflist:
             cntlist.append(i[0])
             cntlist.append(i[2])
-            
+
         # check input list
         tsum = get_sum(inlist,self.lglist,cntlist)
         if round(tsum-self.total_charge,self.nmround+2) == 0:
             return True,inlist
         elif len(inlist) == 2 and len(self.reflist) != 0:
             return False,inlist
-            
+
         while True:
             fitp = random.randrange(len(inlist))
             if (fitp not in cntlist):
@@ -456,13 +456,13 @@ class GAML_main(Charge_gen_scheme):
             tsum = get_sum(inlist,self.lglist,cntlist)
             if round(tsum-self.total_charge,self.nmround+2) == 0:
                 return True,inlist
-            
+
         return False,inlist
 
 
     def func_av(self):
         """Randomly choose no bigger than 5 pair from self.mlinlist, average them as a new inputs
-           
+
            Update:
                 self.totlist
            Result:
@@ -503,7 +503,7 @@ class GAML_main(Charge_gen_scheme):
                             averlist[i[0]] = s
                             averlist[i[2]] = t
                             break
-                
+
                 # apply the pn_limit
                 bool_limit = False
                 for i in self.pn_limit:
@@ -514,7 +514,7 @@ class GAML_main(Charge_gen_scheme):
                     elif i[1] == 'n' and v > 0:
                         bool_limit = True
                         break
-                    
+
                 if not bool_limit:
                     if (not self.bool_nozero) or (not 0 in averlist):
                         # inherited method
@@ -543,7 +543,7 @@ class GAML_main(Charge_gen_scheme):
 
 
     def func_ml(self):
-        """This method is used to generte number of self.gennm charge_pairs based on the chosen charge_list, 
+        """This method is used to generte number of self.gennm charge_pairs based on the chosen charge_list,
            symmetry_list and counter_list
 
            Update:
@@ -633,7 +633,7 @@ class GAML_main(Charge_gen_scheme):
                             self.chargepair_ml.append(lrt)
 
 
-        # since for each loop self.chargepair_ml may append two lists, it is important to check 
+        # since for each loop self.chargepair_ml may append two lists, it is important to check
         # its length to make sure it is always no bigger than self.gennm
         if len(self.chargepair_ml) > self.gennm:
             dump_value = self.chargepair_ml.pop()
@@ -652,7 +652,7 @@ class GAML_main(Charge_gen_scheme):
         with open(self.fname,mode='wt') as f:
             f.write('# This is the genetic algorithm machine learning generated charge file\n')
             f.write('# The total number of generated charge_pairs are: < {:} >\n\n'.format(self.gennm))
-            
+
             if len(self.prolist.symmetry_list) != 0:
                 f.write('# The symmetry_list used is:\n')
                 f.write('#    {:}\n\n'.format(self.prolist.file_line_symmetry))
@@ -688,7 +688,7 @@ class GAML_main(Charge_gen_scheme):
                         f.write('#  ATOM  {:>4} {:>7}  {:>7}\n'.format(j,i[0],i[1]))
                         j += 1
                     f.write('\n\n')
-                        
+
                     print('The number of charge_pairs generated by the normal charge range are: ',nm_nor)
                     f.write('# The charge_pair generated by normal charge_range: ({:})\n\n'.format(nm_nor))
                     for i in self.chargepair_nor:
