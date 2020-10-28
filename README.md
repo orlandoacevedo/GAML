@@ -163,7 +163,7 @@ gaml [command] -h
 
 ## Notes
 ----------
-The most recent version of the software is GAML v0.6 and is still under development.
+The most recent version of the software is GAML v0.7 and is still under development.
 A test for a 1-butylpyridinium-based ionic liquid can be found under the ``sample/`` directory
 Some features worth mentioning:
 + Customized selection range for Coulombic interactions with PBC removal
