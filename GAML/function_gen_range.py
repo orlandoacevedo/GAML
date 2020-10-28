@@ -1,3 +1,5 @@
+import random
+
 def func_gen_range(rlist,percent=0.8):
     """
     For an integer 1D list, start from the mode number, find
@@ -7,17 +9,15 @@ def func_gen_range(rlist,percent=0.8):
     For return value, the ndxmin is included in the range,
     while ndxmax is not
     """
-    
-    import random
-    
-    log = {'nice':True,}
+
+    log = {'nice':True,'info':''}
     try:
         if not isinstance(rlist,list):
             raise TypeError
         else:
             for i in rlist:
                 if not isinstance(i,int):
-                    raise TypeError               
+                    raise TypeError
         percent = float(percent)
         if percent <= 0 or percent > 1:
             raise ValueError
@@ -26,14 +26,14 @@ def func_gen_range(rlist,percent=0.8):
                       'Error: the range of percent has to between 0 to 1\n'
         log['nice'] = False
         return log,0,0
-        
+
     lth = len(rlist)
-    rmax = max(rlist)   
+    rmax = max(rlist)
     ndxlist = []
     for i in range(lth):
         if rlist[i] == rmax:
             ndxlist.append(i)
-      
+
     i = 1
     while i < len(ndxlist):
         if ndxlist[i] - ndxlist[i-1] == 1:
@@ -45,7 +45,7 @@ def func_gen_range(rlist,percent=0.8):
     total_sum = sum(rlist)
     rsum = []
     for ndxmax in ndxlist:
-        
+
         ndxmin = ndxmax
 
         while True:
@@ -56,10 +56,10 @@ def func_gen_range(rlist,percent=0.8):
                     if ndxmin - 1 > 0:
                         ndxmin = ndxmin - 1
                     else:
-                        ndxmin = 0 
+                        ndxmin = 0
                 else:
                     ndxmax = lth - 1
-                    
+
             else:
                 if ndxmin - 1 > 0 :
                     ndxmin = ndxmin - 1
@@ -72,7 +72,7 @@ def func_gen_range(rlist,percent=0.8):
                     ndxmin = 0
 
             lsum = sum(rlist[ndxmin:ndxmax+1])
-            
+
             if lsum / total_sum >= percent:
                 ltmp = []
                 ltmp.append(ndxmin)
@@ -86,11 +86,12 @@ def func_gen_range(rlist,percent=0.8):
         for i in range(len(rsum)):
             if rsum[i] == max(rsum):
                 ndxlist.append(i)
-        
+
         choose = random.randrange(len(ndxlist))
 
         ndxmin = chooselist[choose][0]
         ndxmax = chooselist[choose][1]
 
     return log,ndxmin,ndxmax
+
 

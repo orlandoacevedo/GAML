@@ -1,6 +1,6 @@
 command          = gaml
 file_path        = BPYR_Charge_HvapMAE_1.txt
-charge_path  =  BPYR_ChargeGenRange_BF4_ESP.txt
+charge_path      = BPYR_ChargeGenRange_BF4_ESP.txt
 offset_list      = [1,11]
 counter_list     = [[15,16],[22,21]]
 symmetry_list    = [[1,9],[2,10],[3,7],[4,8],[13,14],[16,17,19,20],[22,23,24],[15,18],5,6,11,12,21]
@@ -15,6 +15,6 @@ threshold        =                      # default is 1.0
 bool_neutral     =     false            # default is True
 bool_nozero      =                      # default is True
 bool_abscomp     =                      # default is True
-pn_limit         = 3n  
+pn_limit         = 3n
 cut_keyword      =                      # default is MAE
 

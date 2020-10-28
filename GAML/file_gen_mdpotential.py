@@ -2,7 +2,7 @@ from GAML.functions import file_size_check, file_gen_new, func_file_input
 
 class File_gen_mdpotential(object):
     def __init__(self,*args,**kwargs):
-        self.log = {'nice':True,}
+        self.log = {'nice':True,'info':''}
         if 'file_path' in kwargs and kwargs['file_path'] is not None:
             self.file = kwargs['file_path']
         else:
@@ -22,7 +22,7 @@ class File_gen_mdpotential(object):
         if not self.log['nice']: return
         self.log, self.prochargefile = func_file_input(self.chargefile,bool_tail=False)
         if not self.log['nice']: return
-        
+
         if 'kwlist' in kwargs and kwargs['kwlist'] is not None:
             if isinstance(kwargs['kwlist'],list) and len(kwargs['kwlist']) != 0:
                 self.kwlist = [i.lower() for i in kwargs['kwlist']]
@@ -51,7 +51,7 @@ class File_gen_mdpotential(object):
             self.block = kwargs['block'].lower() if isinstance(kwargs['block'],str) else 'count'
         else:
             self.block = 'count'
-        
+
         self.literature_value = []
         if 'literature_value' in kwargs and kwargs['literature_value'] is not None:
             for nm in kwargs['literature_value']:
@@ -64,7 +64,7 @@ class File_gen_mdpotential(object):
             self.log['nice'] = False
             self.log['info'] = 'Error: no literature value inputs'
             return
-        
+
         self.literature_value, self.kwlist = self._checknm(self.literature_value,'literature_value',
                                                            self.kwlist,'kwlist')
 
@@ -88,14 +88,16 @@ class File_gen_mdpotential(object):
                 self.MAE = 0.05
         else:
             self.MAE = 0.05
-            
+
+
+    def run(self):
         self._profile()
         self._analysis()
-       
+
 
     def file_print(self):
         pfname = file_gen_new(self.fname,fextend='txt',foriginal=False)
-        with open(pfname,mode='wt') as f:   
+        with open(pfname,mode='wt') as f:
             f.write('# Simulation process result\n\n')
             f.write('# The input file used is:\n')
             f.write('#    {:}\n\n'.format(self.file))
@@ -112,7 +114,7 @@ class File_gen_mdpotential(object):
             f.write('#Keywords: ')
             for kw in self.kwlist: f.write(' {:>8} '.format(kw))
             f.write('\n#LiValues: ')
-            for v in self.literature_value: f.write(' {:8} '.format(v))            
+            for v in self.literature_value: f.write(' {:8} '.format(v))
             f.write('\n\n\n')
 
             endlist = []
@@ -122,7 +124,7 @@ class File_gen_mdpotential(object):
                 line = 'PAIR  '
                 for ch in pair:
                     line += '{:>7.4f} '.format(ch)
-                    
+
                 err = self.errlist[cnt]
                 if 'NaN' in err:
                     line += 'MAE     NaN'
@@ -149,7 +151,7 @@ class File_gen_mdpotential(object):
                 for t in endlist:
                     f.write(t)
                     f.write('\n')
-                
+
 
     def _analysis(self):
         calclist = []
@@ -195,12 +197,12 @@ class File_gen_mdpotential(object):
                     rst = 'NaN'
                 lt.append(rst)
             self.errlist.append(lt)
-    
-    
-    
+
+
+
     def _profile(self):
         """Process the MD result file"""
-        
+
         with open(self.file,mode='rt') as f:
             infile = f.readlines()
         self.blockfile = []
@@ -213,7 +215,7 @@ class File_gen_mdpotential(object):
                 while j < len(infile):
                     line = infile[j].lower()
                     if self.block in line: break
-                    
+
                     for kw in self.kwlist:
                         if kw in line:
                             ltmp = line.split()
@@ -223,17 +225,17 @@ class File_gen_mdpotential(object):
                             except (ValueError,IndexError):
                                 pass
                     j += 1
-                
+
                 self.blockfile.append(lt)
                 i = j
             else:
                 i += 1
-        
+
         self.blockfile,self.prochargefile = self._checknm(self.blockfile,'file_path',
                                                           self.prochargefile,'chargefile')
 
 
-    
+
     def _checknm(self,m,m_str,n,n_str):
         t1 = len(m)
         t2 = len(n)

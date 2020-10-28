@@ -1,5 +1,5 @@
 command          = fss_analysis
-file_path         = BPYR_Charge_HvapMAE_1.txt
+file_path        = BPYR_Charge_HvapMAE_1.txt
 atomtype_list    = ['CY','HY','CW','HW','HA','HS','HT','CS','CR','HR','NA','CA','CT']
 stepsize         = 0.01
 error_tolerance  = 0.30

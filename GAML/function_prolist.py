@@ -17,7 +17,7 @@
     symmetry_list = [1,[2,3,4],5,[6,7],8,9]
 
     Then we define the corresponded charge indices;
- 
+
     charge_input = [-0.18,0.06,0.145,0.06,-0.683,0.418]
 
 
@@ -28,10 +28,10 @@
     OR
 
     offset_list = [8,]
- 
+
     The offset_list is used to apply the charge constrain.
- 
-   
+
+
 
     Then the counter_list has two types definitions;
 
@@ -62,8 +62,8 @@
                 For counter_list;
                     self.reflist    """
 
-        self.log = {'nice':True,}
-        
+        self.log = {'nice':True,'info':''}
+
         symmetry_list = self._f_prolist(symmetry_list,'symmetry_list')
         if not self.log['nice']: return
         self.file_line_symmetry = str(symmetry_list)
@@ -147,13 +147,13 @@
                 bo = True
         elif not isinstance(inlist,list):
             bo = True
-        
+
         if bo:
             self.log['nice'] = False
             self.log['info'] = 'Error: {:} has to be a list'.format(des)
 
         return inlist
-        
+
 
 
     def _f_pro_symmetry_list(self,symmetry_list,offset_list=None):
@@ -175,7 +175,7 @@
                 self.log['info'] = 'Error: offset_list has to be a 1D integer list\n' + \
                                    '       the maximum number of its parameters is 2'
                 return 0, 0
-        
+
         rmax = 0
         lth = 0
         count = 0
@@ -235,7 +235,7 @@
                 self.log['nice'] = False
                 self.log['info'] = 'Error: symmetry_list has to be correctly defined'
                 return 0, 0
-            
+
             count += 1
 
 
@@ -244,10 +244,10 @@
             self.log['info'] = 'Error: the indices in symmetry_list has to be unique and correctly defined'
             return 0, 0
         self.symmetry_length = rmax
-        
+
         pro_offset = []
         if len(offset_list) != 0:
-            try:               
+            try:
                 if len(offset_list) == 1:
                     ndx = pro_1D.index(offset_list[0])
                     pro_offset.append(offset_list[0]-1)
@@ -262,7 +262,7 @@
                 return 0, 0
 
         return pro_symmetry_list,pro_offset
-                
+
 
 
     def _f_pro_counter_list(self,counter_list):
@@ -306,7 +306,7 @@
                 self.log['nice'] = False
                 self.log['info'] = 'Error: the counter_list has to be correctly defined'
                 return 0
-                
+
         if bool_1D:
             if len(counter_list) == 2:
                 ndx = [t-1 for t in counter_list]
@@ -383,12 +383,12 @@
 
             if len(reflist) != 4:
                 bool_ref = False
-                
+
             return bool_ref,reflist
 
 
         pro_ndx_list = []
-        for ndx in counter_list:           
+        for ndx in counter_list:
             bo,reflist = _f_refer_list(symmetry_list,ndx[0],ndx[2],ndx[1],ndx[3])
             if not bo:
                 self.log['nice'] = False
@@ -398,7 +398,7 @@
             #if max(reflist[1],reflist[3]) % min(reflist[1],reflist[3]) != 0:
             #   print('Error: the parameters in counter_list have to be divided evenly')
             #   exit()
-                
+
             pro_ndx_list.append(reflist)
 
         return pro_ndx_list

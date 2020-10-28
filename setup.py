@@ -7,16 +7,16 @@ import GAML
 
 
 def read(*names):
-    values = dict()
+    values = {}
     extensions = ['.txt', '.rst','.md']
     for name in names:
-        value = ''
-        for extension in extensions:
-            filename = name + extension
+        v = ''
+        for ext in extensions:
+            filename = name + ext
             if os.path.isfile(filename):
                 with open(filename) as f:
-                    value = f.read()
-        values[name] = value
+                    v = f.read()
+        values[name] = v
     return values
 
 
@@ -32,10 +32,9 @@ setup(
         "Environment :: Console",
         "Intended Audience :: Developers",
         "Topic :: Software Development :: Build Tools",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
-        "Topic :: Scientific/Engineering :: Chemistry"
-        "Topic :: Scientific/Engineering :: Visualization"
+        "Programming Language :: Python :: 3",
+        "Topic :: Scientific/Engineering :: Chemistry",
+        "Topic :: Scientific/Engineering :: Visualization",
     ],
     author='Orlando Acevedo',
     author_email='orlando.acevedo@miami.edu',

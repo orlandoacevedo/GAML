@@ -8,7 +8,7 @@ from pkg_resources import resource_string
 
 class GAML_autotrain(object):
     def __init__(self,*args,**kwargs):
-        self.log = {'nice':True,}
+        self.log = {'nice':True,'info':''}
         if 'file_path' not in kwargs or kwargs['file_path'] is None:
             self.log['nice'] = False
             self.log['info'] = 'Error: no file inputs'
@@ -16,7 +16,7 @@ class GAML_autotrain(object):
         self.file = kwargs['file_path']
         self.log = file_size_check(self.file,fsize=2)
         if not self.log['nice']: return
-        
+
         self.fname = 'PAIR_Charge'
         self.parameters = { 'top_gas_path'        : None,
                             'top_liq_path'        : None,
@@ -61,7 +61,7 @@ class GAML_autotrain(object):
                             'analysis_begintime'  : None,
                             'analysis_endtime'    : None,
                          }
-        
+
         self._profile()
         if not self.log['nice']: return
         self._proparameters()
@@ -81,7 +81,7 @@ class GAML_autotrain(object):
             self._shfile = resource_string(__name__,'shell/'+self.bashinterfile).decode('utf-8').replace('\r','')
 
 
-        
+
     def _profile(self):
         """Process input auto-settingfile"""
 
@@ -110,7 +110,7 @@ class GAML_autotrain(object):
                             self.log['nice'] = False
                             self.log['info'] = errinfo + 'Error line: ' + line
                             return
-                            
+
                         parname = partmp[0]
                         if parname not in parlist:
                             self.log['nice'] = False
@@ -146,7 +146,7 @@ class GAML_autotrain(object):
                             else:
                                 self.parameters[parname] = lt[0]
 
-                                
+
     def _proparameters(self):
         cwd = os.getcwd()
         for par,name in self.parameters.items():
@@ -161,19 +161,19 @@ class GAML_autotrain(object):
                     self.log['nice'] = False
                     self.log['info'] = 'Error: cannot find the file ' + self.parameters[par]
                     return
-                
+
 
     def _try_file_generations(self):
         # Make a copy and add a key for Charge_gen_scheme
         pardir = { **self.parameters }
         pardir['charge_path'] = pardir['charge_range_path']
-        
+
         cs = Charge_gen_scheme(**pardir)
         if not cs.log['nice']:
             self.log['nice'] = False
             self.log['info'] = cs.log['info']
             return
-        
+
         pardir['charge_path'] = cs.chargepair
         pardir['toppath'] = pardir['top_liq_path']
         fg = File_gen_gromacstop(**pardir)
@@ -203,8 +203,8 @@ class GAML_autotrain(object):
                         f.write('{:}={:}\n'.format(key,self.parameters[key]))
             f.write('\n\n\n')
             f.write(self._shfile)
-                
+
         print('Note: the file < {:} > has been generated, '.format(pf))
         print('    : which can be directly executed for auto-training')
-        
+
 
