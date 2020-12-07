@@ -3,11 +3,9 @@
 
 Genetic Algorithm Machine Learning (GAML) software package for automated force field parameterization.
 
-[Orlando Acevedo](http://www.acevedoresearch.com), University of Miami
+[Orlando Acevedo](http://www.acevedoresearch.com) and Xiang Zhong, University of Miami
 
-This machine learning-based software package automates the force field parameterization of solvents for molecular dynamics (MD) or Monte Carlo (MC) simulations. New OPLS-AA atomic charges and 12-6 Lennard-Jones terms are parameterized for any solvent using a genetic algorithm crossover/average/mutation method. GAML outputs GROMACS formatted files (with additional packages under development, e.g., LAMPPS and AMBER).The parameters are validated by default against user-supplied free energies of hydration (ΔGhyd), liquid densities, and heats of vaporization (ΔHvap).
-
-The user can to choose additional physical properties to optimize, e.g., heat capacity, viscosity, self-diffusivity, dipoles, and solubility. (However, this is still under development and not included in the current build here.)
+This machine learning based software package automates the force field parameterization of solvents for molecular dynamics (MD) or Monte Carlo (MC) simulations. New atomic charges can be parameterized for any solvent using a genetic algorithm crossover/average/mutation method. GAML outputs GROMACS formatted files for OPLS-AA based MD simulations.The parameters are validated by default against user-supplied free energies of hydration (ΔGhyd), liquid densities, and heats of vaporization (ΔHvap). However, other condensed phased physical properties are available (or under development) including heat capacity, viscosity, self-diffusivity, dipoles, surface tension, and solubility.
 
 ## Requirements
 ------------
@@ -173,7 +171,7 @@ Some features worth mentioning:
 
 ## References
 ----------
-Zhong, X.; Acevedo, O. "Automated force field parameterization of Deep Eutectic Solvents using the Genetic Algorithm Machine Learning (GAML) software." (in preparation for submission)
+Zhong, X.; Acevedo, O. "Partial Charges Optimized by Genetic Algorithms for Deep Eutectic Solvent Simulations." (in preparation for submission)
 
 ## About
 -----
