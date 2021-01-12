@@ -3,7 +3,7 @@
 
 Genetic Algorithm Machine Learning (GAML) software package for automated force field parameterization.
 
-[Orlando Acevedo](http://www.acevedoresearch.com) and Xiang Zhong, University of Miami
+Xiang Zhong and [Orlando Acevedo](http://www.acevedoresearch.com), University of Miami
 
 This machine learning based software package automates the creation of force field (FF) parameters for molecular dynamics (MD) or Monte Carlo (MC) simulations. In the current build, atomic charge development is emphasized for solvent simulations using a genetic algorithm crossover/average/mutation method. GAML outputs GROMACS formatted files in the OPLS-AA formalism for use in MD simulations. The FF parameters are validated by default against user-supplied free energies of hydration (ΔGhyd), liquid densities, and heats of vaporization (ΔHvap). However, additional condensed phased physical properties are available (or under development) for training that include: heat capacity, viscosity, self-diffusivity, dipoles, surface tension, and solubility.
 
@@ -171,7 +171,7 @@ Some features worth mentioning:
 
 ## References
 ----------
-Zhong, X.; Acevedo, O. "Partial Charges Optimized by Genetic Algorithms for Deep Eutectic Solvent Simulations." (in preparation for submission)
+Zhong, X.; Velez, C.; Acevedo, O. "Partial Charges Optimized by Genetic Algorithms for Deep Eutectic Solvent Simulations." (in preparation for submission)
 
 ## About
 -----
