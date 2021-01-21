@@ -4,12 +4,16 @@ import random
 
 
 class File_gen_gaussian(object):
-    """
-    This class is used to generate Gaussian com files based on input file. Since this input file
-    specifically comes from GROMACS MD simulation, so its corresponded topfile has to be given.
+    """Generate Gaussian com files based on input file
 
-    Specially, the [atomtypes] directive in topfile can be added a name string to identify
-    the real_atom type. For example, if we has some inputs like;
+    Args:
+        topfile   (str) :   GROMACS template topology file
+        file_path (str) :   equilibrated Box, (pdb|gro)
+
+    Specially, the [atomtypes] directive of input can be edited to
+    identify the real atom type.
+
+    For example, if we has some inputs like;
 
     [ atomtypes ]
     ; type    mass    charge  ptype  sigma(nm)  epsilon(kj/mol)
@@ -21,42 +25,28 @@ class File_gen_gaussian(object):
     ; type    mass    charge  ptype  sigma(nm)  epsilon(kj/mol)
       CY-C   12.011   0.032     A      0.355      0.29288
 
-    However, this modification is not a mandatory.
+    Note: this modification is not mandatory.
 
-
-    To make multi-molecular system generation more precise and meaningful, the shortest distance
-    between any molecules is no bigger than select_range, by default, this number is set to 10 Angstrom.
+    To make multi-molecular system generation more precise and meaningful,
+    the shortest distance between any molecules will be no larger than
+    select range, by default, this number is set to 10 Angstrom.
     Besides, the basis_set and charge_spin can also be defined.
     """
-
     def __init__(self,*args,**kwargs):
-        self.log = {'nice':True,'info':''}
-
         if 'toppath' in kwargs and kwargs['toppath'] is not None:
             self.toppath = kwargs['toppath']
-            self.log = file_size_check(self.toppath,fsize=10)
-            if not self.log['nice']: return
+            file_size_check(self.toppath,fsize=10)
         else:
-            self.log['nice'] = False
-            self.log['info'] = 'Error: the parameter toppath is missing'
-            return
+            raise ValueError('toppath is missing')
 
         if 'file_path' in kwargs and kwargs['file_path'] is not None:
             self.file_path = kwargs['file_path']
-            self.log = file_size_check(self.file_path,fsize=500)
-            if not self.log['nice']: return
+            file_size_check(self.file_path,fsize=500)
         else:
-            self.log['nice'] = False
-            self.log['info'] = 'Error: the parameter file_path is missing'
-            return
+            raise ValueError('file_path is missing')
 
         self.pro_toppath(self.toppath)
-        if not self.log['nice']: return
-
         self.pro_file_path(self.file_path)
-        if not self.log['nice']: return
-
-        self.func_remove_periodic()
 
         if 'select_range' in kwargs and kwargs['select_range'] is not None:
             try:
@@ -64,101 +54,105 @@ class File_gen_gaussian(object):
                 if self.select_range <= 0:
                     raise ValueError
             except ValueError:
-                self.log['nice'] = False
-                self.log['info'] = 'Error: the parameter select_range has to be a positve number'
-                return
+                raise ValueError('select_range has to be a positive number')
         else:
             self.select_range = 10
 
-        self.pro_selections()
+        if 'reschoose' in kwargs and kwargs['reschoose'] is not None:
+            tmp = kwargs['reschoose'].strip()
+            self.reschoose = 'all' if len(tmp) == 0 else tmp.lower()
+        else:
+            self.reschoose = 'all'
 
         if 'gennm' in kwargs and kwargs['gennm'] is not None:
             try:
                 self.gennm = int(kwargs['gennm'])
-                if self.gennm > len(self.prolist) or self.gennm <= 0:
-                    self.gennm = len(self.prolist)
+                if self.gennm <= 0: raise ValueError
             except ValueError:
-                self.log['nice'] = False
-                self.log['info'] = 'Error: the parameter gennm has to be a number\n' + \
-                                   'Error gennm: ' + kwargs['gennm']
-                return
-        elif len(self.prolist) < 5:
-            self.gennm = len(self.prolist)
+                raise ValueError('gennm has to be positive integer')
         else:
             self.gennm = 5
 
-        self.random_selections()
-
+        self.pro_selections()
 
         if 'basis_set' in kwargs and kwargs['basis_set'] is not None:
-            self.basis_set = kwargs['basis_set']
+            self.basis_set = kwargs['basis_set'].strip()
         else:
             self.basis_set = '# HF/6-31G(d) Pop=CHelpG'
 
-
         if 'charge_spin' in kwargs and kwargs['charge_spin'] is not None:
-            self.charge_spin = str(kwargs['charge_spin'])
+            self.charge_spin = kwargs['charge_spin'].strip()
         else:
             self.charge_spin = '0 1'
 
-
         if 'fname' in kwargs and kwargs['fname'] is not None:
-            self.fname = str(kwargs['fname'])
+            self.fname = kwargs['fname'].strip()
         else:
             self.fname = 'GaussInput'
 
-        self._prefile()
-        if not self.log['nice']: return
 
 
     def pro_toppath(self,toppath):
-        """process the input top_file, the defined_class parameters are, self.mol,
-           self.mollist, self.atom, self.atomnm"""
+        """process topology file
 
-        def check_periodic_table(atom_name_string):
-            """This is a collection of the periodic table, but without the inert gases and
-               radioactive elements"""
+        Attributes:
+            self.mol        :   List[[res, molnm, atomnm]]
+            self.atom       :   List[[atomtype, ...]]
+        """
+        def get_atomtype(atom):
+            """get real atom type
 
-            atom_name_list = ['Li','Be','Na','Mg','Al','Si','Cl','Ca','Sc','Ti','V','Cr','Mn',
-                              'Fe','Co','Ni','Cu','Zn','Ga','Ge','As','Se','Br','Rb','Sr','Y',
-                              'Zr','Nb','Mo','Ru','Pd','Ag','Cd','In','Sn','Sb','Te','Cs','Ba',
-                              'Lu','Hf','Ta','W','Re','Os','Ir','Pt','Au','Tl','Pb','Bi','Po',
-                              'At','Fr','Ra','H','B','C','N','O','F','P','S','I','K']
+            No inert gases and radioactive elements
 
-            return (atom_name_string.upper() in [i.upper() for i in atom_name_list])
+            None    :   means not found
+            """
+            if atom is None or len(atom) == 0:
+                return None
+            pt = [
+                'Li','Be','Na','Mg','Al','Si','Cl','Ca','Sc','Ti','V','Cr',
+                'Mn','Fe','Co','Ni','Cu','Zn','Ga','Ge','As','Se','Br',
+                'Rb','Sr','Y','Zr','Nb','Mo','Ru','Pd','Ag','Cd','In','Sn',
+                'Sb','Te','Cs','Ba','Lu','Hf','Ta','W','Re','Os','Ir','Pt',
+                'Au','Tl','Pb','Bi','Po','At','Fr','Ra','H','B','C','N',
+                'O','F','P','S','I','K',
+            ]
+            lp = [i.lower() for i in pt]
+
+            if len(atom) == 1:
+                if atom.lower() in lp:
+                    return pt[lp.index(atom.lower())]
+                return None
+
+            atom = atom if len(atom) <= 2 else atom[:2]
+            if atom.lower() in lp:
+                return pt[lp.index(atom.lower())]
+            if len(atom) > 1:
+                atom = atom[0]
+                if atom.lower() in lp:
+                    return pt[lp.index(atom.lower())]
+            return None
 
 
         def func_atomtype(atomtype):
-            """This method is used to check and verify the atomtype"""
-
-            print('The following real_atom_type will be used for the com file generations')
+            """check and verify the atomtype"""
+            print('The following atom type will be used for com files')
             count = 1
             proatomtype = []
             for i in atomtype:
-                if len(i) == 1:
-                    if len(i[0]) == 1:
-                        proatomtype.append([i[0],i[0]])
-                        print('Number ',count,'  ',i[0],' --> ',i[0])
-                    else:
-                        if check_periodic_table(i[0][:2]):
-                            proatomtype.append([i[0],i[0][:2]])
-                            print('Number ',count,'  ',i[0],' --> ',i[0][:2])
-                        elif check_periodic_table(i[0][0]):
-                            proatomtype.append([i[0],i[0][0]])
-                            print('Number ',count,'  ',i[0],' --> ',i[0][0])
-                        else:
-                            proatomtype.append([i[0],i[0]])
-                            print('Number ',count,'  ',i[0],' --> ','N/A')
+                if i[1] is None:
+                    at = get_atomtype(i[0])
+                    if at is None: at = i[0]
+                    print('No. {:2}  {:9} --> {:}'.format(count,i[0],at))
+                    proatomtype.append([i[0],at])
                 else:
                     proatomtype.append(i)
-                    print('Number ',count,'  ',i[0],' --> ',i[1])
+                    print('No. {:2}  {:9}  -->  {:}'.format(count,i[0],i[1]))
                 count += 1
 
             return proatomtype
 
 
-        with open(toppath,mode='rt') as f:
-            infile = f.readlines()
+        with open(toppath,mode='rt') as f: infile = f.readlines()
 
         i = 0
         atomtype = []
@@ -166,122 +160,116 @@ class File_gen_gaussian(object):
         self.mol = []
         while i < len(infile):
             line = infile[i]
-            line = line[:line.find(';')]
+            line = line if line.find(';') == -1 else line[:line.find(';')]
 
             if line.find('[') != -1:
-                strtmp = ''
-                for char in line:
-                    if char != ' ' and char != '\t':
-                        strtmp += char
-                line = strtmp
+                line = line.strip().replace(' ','')
 
             if line == '[atomtypes]':
                 j = i + 1
-                while True:
-                    if infile[j].find('[') != -1:
-                        break
-                    else:
-                        line = infile[j]
-                        ltmp = line[:line.find(';')].split()
-                        if len(ltmp) == 0 or (len(ltmp) > 0 and ltmp[0][0] == '#'):
-                            j += 1
-                            continue
-                        if len(ltmp) == 6 or len(ltmp) == 7:
-                            atomtype.append(ltmp[0].split('-'))
-                        else:
-                            self.log['nice'] = False
-                            self.log['info'] = 'Error: wrong defined topfiles\n' + \
-                                               '     :' + line
-                            return
+                while j < len(infile):
+                    line = infile[j]
+                    l = line if line.find(';') == -1 else line[:line.find(';')]
+                    l = l.strip()
+                    if len(l) == 0 or l[0] == '#':
                         j += 1
-                i = j
+                        continue
 
+                    if l[0] == '[': break
+
+                    ltmp = l.split()
+                    if len(ltmp) == 6 or len(ltmp) == 7:
+                        p = ltmp[0].split('-')
+                        if len(p) == 1:
+                            atomtype.append([ltmp[0],None])
+                        elif len(p) == 2:
+                            atomtype.append(p)
+                        else:
+                            print(line)
+                            raise ValueError('wrong defined entry')
+                    else:
+                        print(line)
+                        raise ValueError('wrong defined entry')
+                    j += 1
+                i = j
             elif line == '[atoms]':
                 j = i + 1
-                while True:
-                    if infile[j].find('[') != -1:
-                        break
-                    else:
-                        line = infile[j]
-                        ltmp = line[:line.find(';')].split()
-                        if len(ltmp) == 0 or (len(ltmp) > 0 and ltmp[0][0] == '#'):
-                            j += 1
-                            continue
-                        if len(ltmp) >= 6:
-                            ls = [ltmp[1],ltmp[3]]
-                            atom.append(ls)
-                        else:
-                            self.log['nice'] = False
-                            self.log['info'] = 'Error: wrong defined topfiles\n' + \
-                                               '     :' + line
-                            return
+                while j < len(infile):
+                    line = infile[j]
+                    l = line if line.find(';') == -1 else line[:line.find(';')]
+                    l = l.strip()
+                    if len(l) == 0 or l[0] == '#':
                         j += 1
-                i = j
+                        continue
 
+                    if l[0] == '[': break
+
+                    ltmp = l.split()
+                    if len(ltmp) >= 6:
+                        atom.append([ltmp[1],ltmp[3]])
+                    else:
+                        print(line)
+                        raise ValueError('wrong defined entry')
+                    j += 1
+                i = j
             elif line == '[molecules]':
                 j = i + 1
-                while True:
-                    if j >= len(infile):
-                        break
-                    else:
-                        line = infile[j]
-                        ltmp = line[:line.find(';')].split()
-                        if len(ltmp) == 0 or (len(ltmp) > 0 and ltmp[0][0] == '#'):
-                            j += 1
-                            continue
-                        if len(ltmp) == 2:
-                            ls = [ltmp[0],int(ltmp[1])]
-                            self.mol.append(ls)
-                        else:
-                            self.log['nice'] = False
-                            self.log['info'] = 'Error: wrong defined topfiles\n' + \
-                                               '     :' + line
-                            return
+                while j < len(infile):
+                    line = infile[j]
+                    l = line if line.find(';') == -1 else line[:line.find(';')]
+                    l = l.strip()
+                    if len(l) == 0 or l[0] == '#':
                         j += 1
-                i = j
+                        continue
 
+                    if l[0] == '[': break
+
+                    ltmp = l.split()
+                    if len(ltmp) == 2:
+                        self.mol.append([ltmp[0],int(ltmp[1])])
+                    else:
+                        print(line)
+                        raise ValueError('wrong defined entry')
+                    j += 1
+                i = j
             else:
                 i += 1
 
-
-        # adjust [atoms] parameters sequence to correspond to the [systems] directive sequence
+        # adjust [atoms] parameters sequence
+        # to make it correspond to the [systems] directive sequence
         proatom = []
         for sys in self.mol:
-            i = 0
             ltmp = []
-            while i < len(atom):
-                if atom[i][1] == sys[0]:
-                    ltmp.append(atom[i][0])
-                i += 1
-            proatom.append(ltmp)
+            for t in atom:
+                if t[1] == sys[0]:
+                    ltmp.append(t[0])
+            if len(ltmp) != 0:
+                proatom.append(ltmp)
 
         if len(proatom) != len(self.mol):
-            self.log['nice'] = False
-            line = 'Error: at least one residue name is wrong \n' + \
-                   '     : all the residues are: \n'
-            for i in self.mol:
-                line += i + '    '
-            line += '\nError, all the atoms residues are: \n'
-            for i in atom:
-                line += i + '    '
-            self.log['info'] = line
-            return
+            print('Error: at least one residue name is wrong')
+            print(self.mol)
+            print('Error: all the atoms residues are:')
+            print(atom)
+            raise ValueError('not corresponded')
 
+        if sum([len(i) for i in proatom]) != len(atom):
+            print('Error: [atom] directive is wrong defined')
+            raise ValueError('wrong defined')
+
+        # check atom types between [atom] and [atomtype]
         for i in proatom:
-            for latom in i:
-                atomndx = True
-                for j in range(len(atomtype)):
-                    if latom == atomtype[j][0]:
-                        atomndx = False
+            for t in i:
+                bo = True
+                for j in atomtype:
+                    if t == j[0]:
+                        bo = False
                         break
-                if atomndx:
-                    self.log['nice'] = False
-                    self.log['info'] = 'Error: one of atomtype in pdb file is not defined in the top file\n' + \
-                                       'Error atomtype: ' + latom
-                    return
+                if bo:
+                    print(t)
+                    raise ValueError('not found')
 
-
-        # modify the atom_type
+        # prompt to modify the atom type
         while True:
             atomtype = func_atomtype(atomtype)
             print('Do you want to make a modification? y/yes, else continue')
@@ -290,11 +278,10 @@ class File_gen_gaussian(object):
                 print('Please label which atom type do you want to change?')
                 print('Multiple inputs are supported, please use comma separate them')
                 print('For example, "2-C" or "2 - C" or "2-C, 5 - O, 6-H"')
-
                 while True:
                     gstr = input()
                     ltmp = gstr.split(',')
-                    bool_input = False
+                    bo = False
                     for i in ltmp:
                         label = i.split('-')
                         if len(label) == 2:
@@ -302,35 +289,25 @@ class File_gen_gaussian(object):
                                 nm = int(label[0])
                                 if nm > len(atomtype):
                                     print('Warning: the input number is too large, the atomtype is not defined')
-                                    bool_input = True
+                                    bo = True
                             except ValueError:
                                 print('Warning: the input is wrong, only integer is accepted. Please input again')
-                                bool_input = True
+                                bo = True
                         else:
                             print('Warning: the input is wrong, please input again')
-                            bool_input = True
+                            bo = True
 
-                        if bool_input:
+                        if bo:
                             break
                         atomtype[nm-1][1] = label[1]
 
-                    if not bool_input:
+                    if not bo:
                         print()
                         break
             else:
                 break
 
-
-        # self.mollist, self.atomnm
-        self.mollist = []
-        self.atomnm = 0
-        i = 0
-        while i < len(self.mol):
-            self.mollist.append(self.mol[i][1])
-            self.atomnm += len(proatom[i]) * self.mol[i][1]
-            self.mol[i].append(len(proatom[i]))
-            i += 1
-
+        for i in range(len(self.mol)): self.mol[i].append(len(proatom[i]))
 
         # self.atom
         self.atom = []
@@ -346,33 +323,39 @@ class File_gen_gaussian(object):
 
 
     def pro_file_path(self,file_path):
-        """process the pdbfile, as well as check its relation with the input topfile,
-           the defined_class parameters are, self.box_half_length, self.totlist"""
+        """process input file
 
-        # Attention! Here may have bugs if the pdb file is not generated by GROMACS program
+        As well as check its relation with the input topfile
 
-        FEXTEND = file_path[file_path.rfind('.')+1:].upper()
+        Attributes:
+            self.prototlist         :   List[List[List[[x,y,z]]]]
+            self.avercorlist        :   List[List[[float,float,float]]]
+            self.box_half_length    :   float
+        """
+        # Attention!
+        # Here may have bugs if file is not generated by GROMACS program
 
-        # self.totlist
-        self.totlist = []
+        if file_path.find('.') == -1 or file_path.rfind('.')+1 >= len(file_path):
+            ext = 'pdb'
+        else:
+            ext = file_path[file_path.rfind('.')+1:].lower()
 
-        if FEXTEND == 'PDB':
+        totlist = []
+        if ext == 'pdb':
             with open(file_path,mode='rt') as f:
                 box_length = 0
                 while True:
                     line = f.readline()
                     if len(line) == 0:
                         break
-                    else:
-                        if len(line) >= 54 and (line[:4] == 'ATOM' or line[:6] == 'HETATM'):
-                            ltmp = []
-                            ltmp.append(float(line[30:38]))
-                            ltmp.append(float(line[38:46]))
-                            ltmp.append(float(line[46:54]))
-                            box_length = max(box_length,*ltmp)
-                            self.totlist.append(ltmp)
-
-        elif FEXTEND == 'GRO':
+                    if len(line) >= 54 and (line[:4].upper() == 'ATOM' or line[:6].upper() == 'HETATM'):
+                        ltmp = []
+                        ltmp.append(float(line[30:38]))
+                        ltmp.append(float(line[38:46]))
+                        ltmp.append(float(line[46:54]))
+                        box_length = max(box_length,*ltmp)
+                        totlist.append(ltmp)
+        elif ext == 'gro':
             with open(file_path,mode='rt') as f:
                 title = f.readline()
                 nm = int(f.readline().split()[0])
@@ -383,287 +366,422 @@ class File_gen_gaussian(object):
                     ltmp.append(float(line[20:28])*10)
                     ltmp.append(float(line[28:36])*10)
                     ltmp.append(float(line[36:44])*10)
-                    self.totlist.append(ltmp)
+                    totlist.append(ltmp)
                     i += 1
                 box_length = float(f.readline().split()[0]) * 10
         else:
-            self.log['nice'] = False
-            self.log['info'] = 'Error: only pdb file and gro files are supported'
-            return
+            raise ValueError('only pdb & gro files are supported')
 
         # self.box_half_length
         self.box_half_length = box_length / 2
 
-        if len(self.totlist) != self.atomnm:
-            self.log['nice'] = False
-            self.log['info'] = 'Error: Top and pdb file are not corresponded'
-            return
+        if len(totlist) != sum([t[1]*t[2] for t in self.mol]):
+            print('length of totlist and number of atomnm')
+            raise ValueError('not corresponded')
 
-
-    def func_remove_periodic(self):
-        """remove the periodic molecules, as well as get the Center-Of-Coordinates,
-           the defined_class parameters are, self.prototlist, self.avercorlist"""
 
         self.prototlist = []
         self.avercorlist = []
         count = 0
         for res in self.mol:
-            i = 0
             ls = []
             lt = []
-            while i < res[1]:
-                j = 0
-                ltmp = []
-                x_cor = []
-                y_cor = []
-                z_cor = []
-                while j < res[2]:
-                    ltmp.append(self.totlist[count])
-                    x_cor.append(self.totlist[count][0])
-                    y_cor.append(self.totlist[count][1])
-                    z_cor.append(self.totlist[count][2])
-                    j += 1
+            for i in range(res[1]):
+                xyz = []
+                for j in range(res[2]):
+                    xyz.append(totlist[count])
                     count += 1
 
-                lp = []
-                if max(x_cor) - min(x_cor) < self.box_half_length and \
-                    max(y_cor) - min(y_cor) < self.box_half_length and \
-                    max(z_cor) - min(z_cor) < self.box_half_length:
+                # take care of minimum image convention
+                for cnt in range(len(xyz)):
+                    if xyz[cnt][0] - xyz[0][0] > self.box_half_length:
+                        xyz[cnt][0] -= self.box_half_length * 2
+                    elif xyz[cnt][0] - xyz[0][0] < -self.box_half_length:
+                        xyz[cnt][0] += self.box_half_length * 2
 
-                    lp.append(sum(x_cor)/len(x_cor))
-                    lp.append(sum(y_cor)/len(y_cor))
-                    lp.append(sum(z_cor)/len(z_cor))
+                    if xyz[cnt][1] - xyz[0][1] > self.box_half_length:
+                        xyz[cnt][1] -= self.box_half_length * 2
+                    elif xyz[cnt][1] - xyz[0][1] < -self.box_half_length:
+                        xyz[cnt][1] += self.box_half_length * 2
 
-                    ls.append(ltmp)
-                    lt.append(lp)
+                    if xyz[cnt][2] - xyz[0][2] > self.box_half_length:
+                        xyz[cnt][2] -= self.box_half_length * 2
+                    elif xyz[cnt][2] - xyz[0][2] < -self.box_half_length:
+                        xyz[cnt][2] += self.box_half_length * 2
 
-                i += 1
+                xtot = [i[0] for i in xyz]
+                ytot = [i[1] for i in xyz]
+                ztot = [i[2] for i in xyz]
+
+                xage = sum(xtot) / len(xtot)
+                yage = sum(ytot) / len(ytot)
+                zage = sum(ztot) / len(ztot)
+
+                ls.append(xyz)
+                lt.append([xage, yage, zage])
+
             self.prototlist.append(ls)
             self.avercorlist.append(lt)
 
 
 
     def pro_selections(self):
-        """based on the given select_range, get all the combined residues,
-           the defined_class parameters are, self.prolist, the module used, itertools"""
+        """based on the given select_range, get all the combined residues
 
-        if len(self.mollist) == 1:
-            self.prolist = list(range(len(self.prototlist[0])))
-        else:
-            self.prolist = []
-            reflist = itertools.product(*[range(len(i)) for i in self.prototlist])
+        Attributes:
+            self.chooselist    :   List[List[[resnm,molnm], ...]]
+        """
 
-            for refcor in reflist:
-                x_cor = []
-                y_cor = []
-                z_cor = []
-                count = 0
-                for j in refcor:
-                    x_cor.append(self.avercorlist[count][j][0])
-                    y_cor.append(self.avercorlist[count][j][1])
-                    z_cor.append(self.avercorlist[count][j][2])
-                    count += 1
+        # determine which residue to choose
+        if len(self.mol) == 1:
+            self.reschoose = self.mol[0][1]
+        if self.reschoose != 'all':
+            tmp = [res[0].lower() for res in self.mol]
+            if self.reschoose not in tmp:
+                print('available residues: ',tmp)
+                raise ValueError('not found')
+            ndx = tmp.index(self.reschoose)
+            self.prototlist = self.prototlist[ndx]
+            self.avercorlist = self.avercorlist[ndx]
+            self.atom = self.atom[ndx]
+            self.mol = self.mol[ndx]
 
-                x_cor = sorted(x_cor)
-                y_cor = sorted(y_cor)
-                z_cor = sorted(z_cor)
-                xindex = True
-                i = 1
-                while i < len(x_cor):
-                    if x_cor[i] - x_cor[i-1] > self.select_range:
-                        xindex = False
+
+        # format: List[List[List[[resnm,molnm]]]]
+        #              res  mol      index
+        # !! searching is based on an increasing order
+        ndxlist = []
+        dselrange = self.select_range**2
+        for rnm,res in enumerate(self.avercorlist):
+            lp = []
+            for m,v in enumerate(res):
+                ls = []
+                # self
+                n = m + 1
+                if n < len(res):
+                    d = [v[tmp]-res[n][tmp] for tmp in range(3)]
+                    if d[0]**2 + d[1]**2 + d[2]**2 <= dselrange:
+                        ls.append([rnm,n])
+                    n += 1
+
+                # cross
+                cnt = rnm + 1
+                if cnt < len(self.avercorlist):
+                    ces = self.avercorlist[cnt]
+                    for y,p in enumerate(ces):
+                        d = [v[tmp]-p[tmp] for tmp in range(3)]
+                        if d[0]**2 + d[1]**2 + d[2]**2 <= dselrange:
+                            ls.append([cnt,y])
+                    cnt += 1
+                lp.append(ls)
+            ndxlist.append(lp)
+
+        # for each mol in every residue, get all surroundings
+        surlist = []
+        for i in range(len(ndxlist)):
+            lp = []
+            for j in range(len(ndxlist[i])):
+                ls = []
+                for x,r in enumerate(ndxlist):
+                    # res, once x no less than i, no need going
+                    if x > i:
                         break
-                    i += 1
-
-                if xindex:
-                    yindex = True
-                    i = 1
-                    while i < len(y_cor):
-                        if y_cor[i] - y_cor[i-1] > self.select_range:
-                            yindex = False
+                    for y,m in enumerate(r):
+                        # mol, once y no less than j, no need going
+                        if y > j:
                             break
-                        i += 1
+                        if [i,j] in m:
+                            ls.append([x,y])
 
-                    if yindex:
-                        zindex = True
-                        i = 1
-                        while i < len(z_cor):
-                            if z_cor[i] - z_cor[i-1] > self.select_range:
-                                zindex = False
-                                break
-                            i += 1
+                # itself
+                for t in ndxlist[i][j]: ls.append(t)
 
-                        if zindex:
-                            self.prolist.append(refcor)
+                lp.append(ls)
+            surlist.append(lp)
 
 
+        self.chooselist = []
+        # no matter how is the result, try this certain of time
+        for _ in range(10):
+            reflist,ndxlist = self.gen_reflist(surlist,self.gennm+100)
+            newlist = self.gen_chooselist(reflist,ndxlist,surlist)
 
-    def random_selections(self):
-        """choose the residues, based on given 'gennm' parameters,
-           the defined_class parameters are, self.reflist, the module used, random"""
+            # dynamically update
+            bo = False
+            for t in newlist:
+                if t not in self.chooselist:
+                    self.chooselist.append(t)
 
-        # randomly choose the defined_class residue combinations
-        self.reflist = []
-        lth = len(self.prolist)
-        if self.gennm <= lth / 2:
-            while len(self.reflist) < self.gennm:
-                ndx = random.randrange(lth)
-                self.reflist.append(ndx)
-                self.reflist = list(set(self.reflist))
+                if len(self.chooselist) >= self.gennm:
+                    bo = True
+                    break
+            if bo:
+                break
+        if len(self.chooselist) == 0:
+            raise RuntimeError('no generation')
+
+
+    def gen_chooselist(self,reflist,ndxlist,surlist):
+        """generate chooselist
+
+        Args:
+            self.reschoose
+            self.mol
+            reflist     --  will be updated
+            ndxlist
+            surlist
+
+        Return:
+            chooselist  :   List[List[[resnm,molnm], ...]]
+        """
+        # This list can be used for future updates
+        # calculate minimum choose molnm for each residue
+        if self.reschoose == 'all' and len(self.mol) > 1:
+            reslist = sorted([tmp[1] for tmp in self.mol])
+            gcd = reslist[0]
+            # calculate greatest common divisor
+            for t in reslist[1:]:
+                while gcd != 0:
+                    t, gcd = gcd, t%gcd
+                gcd = t
+            bl = [tmp[1]//gcd for tmp in self.mol]
         else:
-            self.reflist = list(range(lth))
-            while len(self.reflist) > self.gennm:
-                ndx = random.randrange(len(self.reflist))
-                self.reflist.remove(self.reflist[ndx])
-
-
-    # public method
-    def residue_selections(self):
-
-        lp = []
-        for ndx in self.reflist:
-            ls = []
-            count = 0
-            for i in self.prolist[ndx]:
-                for j in self.prototlist[count][i]:
-                    ls.append(j)
-                count += 1
-            lp.append(ls)
-
-
-        i = 0
-        proatom = []
-        while i < len(self.atom):
-            proatom += self.atom[i]
-            i += 1
-
+            bl = [1]
 
         chooselist = []
-        count = 1
-        for res in lp:
-            ltmp = []
-            ltmp.append( '%chk={:s}_{:d}.chk'.format(self.fname,count) )
-            ltmp.append( self.basis_set )
-            ltmp.append( '\n{:s} Charge Analysis\n'.format(self.fname) )
-            ltmp.append( self.charge_spin )
-            count += 1
+        for i,ndx in enumerate(ndxlist):
+            wl = []
+            for t in range(len(bl)):
+                ls = []
+                # perfer searching from ndx, identify circle
+                for x in surlist[ndx[0]][ndx[1]]:
+                    if x[0] == t:
+                        ls.append(x)
+                # then others, crossing circle
+                for e in reflist[i]:
+                    for x in surlist[e[0]][e[1]]:
+                        # caution: remove cross-referring
+                        if x[0] == t and x not in ls:
+                            ls.append(x)
+                # no matter how the way box is set
+                # surrounding will always include itself
+                wl.append(ls)
 
-            lt = []
-            j = 0
-            for rxyz in res:
-                line = ('{:2}  {:>7} {:>7} {:>7}'.format(proatom[j],rxyz[0],rxyz[1],rxyz[2]))
-                ltmp.append(line)
-                j += 1
-            ltmp.append('\n\n')
-            lt.append(ltmp)
-            chooselist.append(lt)
+            # first, append itself
+            reflist[i].append(ndx)
+            curlist = reflist[i]
+            # second, calculate all ratios
+            # for a series of values,       a1 : a2 : a3 ...
+            # their best minimum ratio is,  b1 : b2 : b3 ...
+            # calculate n to make,          c1 : c2 : c3 ...
+            # to make, for each i, Each(ci) = Each(bi*n) >= max(ALL(ai))
+            # otherwise, n = n - 1
+            al = []
+            for t in range(len(bl)):
+                tot = 0
+                for x in curlist:
+                    if x[0] == t:
+                        tot += 1
+                al.append(tot)
+
+            n = 1
+            while True:
+                bo = True
+                for x,v in enumerate(bl):
+                    if v*n - al[x] < 0:
+                        bo = False
+                        break
+                if bo:
+                    break
+                n += 1
+
+            if n > 1:
+                while True:
+                    dl = [bl[t]*n - al[t] for t in range(len(bl))]
+                    bo = True
+                    for c,t in enumerate(dl):
+                        if len(wl[c]) < t:
+                            bo = False
+                            break
+                    if bo:
+                        break
+                    n = n - 1
+                    if n <= 1:
+                        break
+
+            # update curlist
+            bool_choose = True
+            dl = [bl[t]*n - al[t] for t in range(len(bl))]
+            for c,t in enumerate(dl):
+                if t < 0:
+                    # remove res--c
+                    for x in range(-t):
+                        bo = False
+                        for y in curlist:
+                            if y[0] == c:
+                                bo = True
+                                break
+                        if bo:
+                            curlist.remove(y)
+                elif t > 0:
+                    # append res--c
+                    if len(wl[c]) >= t:
+                        m = 0
+                        for y in wl[c]:
+                            if y not in curlist:
+                                curlist.append(y)
+                                m += 1
+                            if m == t:
+                                break
+                        if m != t:
+                            bool_choose = False
+                    else:
+                        bool_choose = False
+
+            if bool_choose:
+                chooselist.append(curlist)
 
         return chooselist
 
 
-    def _prefile(self):
-        """Prepare for print"""
 
-        # the self.resnmprint is used to identify the position of the chosen_residue
-        profile = []
-        self.resnmprint = []
-        for ndx in self.reflist:
+    def gen_reflist(self,surlist,gennm=None,maxtry=None):
+        """generate referring list based on surrounding list
+
+        Args:
+            self.mol:   List[[resname, resnm, atomnm], ...]
+            surlist :   List[List[List[resnm,molnm], ...]]
+                              res  mol   index
+            maxtry  :   int :   maximum number of trying
+
+        Returns:
+            reflist :   List[List[[resnm,molnm], ...]]
+            ndxlist :   List[[resnm, molnm], ...]
+            ownlist :
+        """
+        if gennm is None: gennm = self.gennm
+        if maxtry is None: maxtry = 1000000
+        if maxtry <= gennm: maxtry = 1000000
+        if maxtry <= gennm*10: maxtry = gennm * 2
+
+        # format: List[List[[resnm,molnm], ...]]
+        reflist = []
+        # corresponding surrounding mol
+        ndxlist = []
+        cnt = 0
+        while len(reflist) < gennm:
+            if cnt > maxtry:
+                raise RuntimeError('maximum trying is reached')
+            cnt += 1
+            # first, randomly choose res
+            resnm = random.randrange(len(self.mol))
+
+            # second, randomly choose mol
+            molnm = random.randrange(len(self.mol[resnm]))
+
+            surnm = len(surlist[resnm][molnm])
+            if surnm == 0: continue
+
+            surmol = surlist[resnm][molnm]
+
+            while True:
+                # choose number of molecules
+                nm = random.randrange(6)
+                if nm <= surnm: break
+
             ls = []
-            count = 0
-            line = ''
-            for i in self.prolist[ndx]:
-                line += '{:6d}'.format(i)
-                for j in self.prototlist[count][i]:
-                    ls.append(j)
-                count += 1
-            profile.append(ls)
-            self.resnmprint.append(line)
+            while True:
+                t = random.randrange(surnm)
+                if surmol[t] not in ls:
+                    ls.append(surmol[t])
+                    if len(ls) >= nm:
+                        break
 
-        i = 0
-        proatom = []
-        while i < len(self.atom):
-            proatom += self.atom[i]
-            i += 1
+            if ls not in reflist:
+                reflist.append(ls)
+                ndxlist.append([resnm,molnm])
+
+        return reflist,ndxlist
 
 
+
+    def run(self):
+        """Prepare for write
+
+        Attributes:
+            self.prototlist
+            self.chooselist
+            self.fname
+            self.atom
+            self.basis_set
+            self.charge_spin
+
+        Returns:
+            self.outfile    :   List[file, ...]
+        """
         self.outfile = []
-        pfname = self.fname + '_SYS_ALL'
-        for res in profile:
-            ltmp = []
-            ltmp.append( '%chk=check_{:s}.chk'.format(pfname) )
-            ltmp.append( self.basis_set )
-            ltmp.append( '\n{:s} Charge Analysis\n'.format(pfname) )
-            ltmp.append( self.charge_spin )
-            count += 1
+        for res in self.chooselist:
+            line = self.basis_set + '\n\n'
+            line += '{:} Charge Analysis\n\n'.format(self.fname)
+            line += self.charge_spin + '\n'
+            for ndx in res:
+                mol = self.prototlist[ndx[0]][ndx[1]]
+                j = 0
+                for t in mol:
+                    v1 = round(t[0],4)
+                    v2 = round(t[1],4)
+                    v3 = round(t[2],4)
+                    line += '{:5}  {:>7} {:>7} {:>7}\n'.format(self.atom[ndx[0]][j],v1,v2,v3)
+                    j += 1
+            line += '\n\n\n'
+            self.outfile.append(line)
 
-            ls = []
-            j = 0
-            for rxyz in res:
-                line = ('{:2}  {:>7} {:>7} {:>7}'.format(proatom[j],rxyz[0],rxyz[1],rxyz[2]))
-                ltmp.append(line)
-                j += 1
-            ltmp.append('\n\n')
-            ls.append(ltmp)
-            self.outfile.append(ls)
-
-        if len(self.outfile) == 0:
-            self.log['nice'] = False
-            self.log['info'] = 'Warning: no file is going to output\n' + \
-                               '       : please try to change the input pdb file'
-            return
-        else:
-            print('\nOne sample of generated Gaussian_com files is:\n')
-            for sample in self.outfile[0]:
-                for line in sample:
-                    print(line)
-            print('Do you want to continue?  y/yes, else quit')
-            print('    this will generate \'com\' files >',end='    ')
-            get_input = input()
-            if get_input.upper() != 'Y' and get_input.upper != 'YES':
-                self.log['nice'] = False
-                self.log['info'] = '\nWarning: you have decided to quit ...\n' + \
-                                   '       : nothing is generated\n'
-                return
-            else:
-                print('\nGreat! Going to generate files ...\n')
 
 
     def file_print(self):
-        """the module used, file_gen_new"""
+        """writing to file"""
+
+        print('One sample of generated Gaussian_com files is:\n')
+        print(self.outfile[0],end='')
+        print('Do you want to continue?  y/yes, else quit')
+        line = 'This will generate < {:} > files'.format(len(self.outfile))
+        print(line)
+        tmp = input()
+        if tmp.lower() != 'y' and tmp.lower != 'yes':
+            print('Note: exiting...')
+            return
+        print('\nGreat! Going to generate files ...\n')
+
 
         fnamelist = []
-        for sys in self.outfile:
+        for line in self.outfile:
             filename = file_gen_new(self.fname,fextend='com',foriginal=False)
             fnamelist.append(filename)
-            with open(filename,mode='wt') as f:
-                for res in sys:
-                    for line in res:
-                        f.write(line)
-                        f.write('\n')
+            new = filename[:filename.rfind('.')]
+            line = '%chk={:}.chk\n'.format(new) + line
+
+            with open(filename,'wt') as f: f.write(line)
 
 
-        pfname = self.fname + '_namelist'
-        pfname = file_gen_new(pfname,fextend='txt',foriginal=False)
-        with open(pfname,mode='wt') as f:
-            f.write('# This file is a name_list of chosen_residue \n\n')
+        pf = self.fname + '_namelist'
+        pf = file_gen_new(pf,fextend='txt',foriginal=False)
+        print('Note: please check file: < {:} >'.format(pf))
+        with open(pf,mode='wt') as f:
+            f.write('# Collection of generated file names\n\n')
+            f.write('# The topfile is:\n')
+            f.write('#    {:}\n\n'.format(self.toppath))
+            f.write('# The pdbfile is:\n')
+            f.write('#    {:}\n\n'.format(self.file_path))
+            f.write('# The select_range is < {:} > Angstrom\n'.format(self.select_range))
 
-            f.write('# The topfile used is:\n')
-            f.write('#    {:s}\n\n'.format(self.toppath))
+            f.write('# Reference format: [residue-index, molecule-index]\n\n')
 
-            f.write('# The pdbfile used is:\n')
-            f.write('#    {:s}\n\n'.format(self.file_path))
+            for i,j in enumerate(fnamelist):
+                line = ''
+                for t in self.chooselist[i]:
+                    line += '[' + str(t[0]+1) + ',' + str(t[1]+1) + ']  '
+                line = line.strip()
+                f.write('{:<6d}: {:} \n'.format(i+1,line))
 
-            f.write('# The value corresponds to the input pdb file residue number \n')
-            f.write('# The select_range used is < {:} > Angstrom\n'.format(self.select_range))
-
-            f.write('\n  [namelist] \n\n')
-            f.write('#   nm  res_1  res_2  ...    filename\n\n')
-
-            j = 1
-            count = 0
-            for i in fnamelist:
-                f.write('{:>6d} {:s}    {:>20s} \n'.format(j,self.resnmprint[count],i))
-                count += 1
-                j += 1
 
 

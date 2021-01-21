@@ -1,14 +1,12 @@
-from GAML.functions import file_size_check, file_gen_new, func_file_input, func_roundoff_error, func_pro_pn_limit
+from GAML.functions import file_size_check, file_gen_new, func_file_input, \
+                           func_roundoff_error, func_pro_pn_limit
 from GAML.charge_gen_scheme import Charge_gen_scheme
 import random
 
 
 class GAML(Charge_gen_scheme):
-
     def __init__(self,*args,**kwargs):
-
         super().__init__(self,*args,**kwargs)
-        if not self.log['nice']: return
 
         bo = False
         if 'error_tolerance' in kwargs and kwargs['error_tolerance'] is not None:
@@ -36,31 +34,29 @@ class GAML(Charge_gen_scheme):
         else:
             self.error_tolerance = 0.12
         if bo:
-            self.log['nice'] = False
-            self.log['info'] = 'Error: the parameter error_tolerance has to be a positive number'
-            return
+            print('error_tolerance has to be a positive number')
+            raise ValueError('wrong defined')
 
         if self.error_tolerance != 'nan' and self.error_tolerance > 1:
             print('Warning: the error_tolerance is greater than 1..')
-
 
         if 'bool_abscomp' in kwargs and kwargs['bool_abscomp'] is not None:
             self.bool_abscomp = False if (kwargs['bool_abscomp'] is False) else True
         else:
             self.bool_abscomp = True
 
-
         if 'cut_keyword' in kwargs and kwargs['cut_keyword'] is not None:
             self.cut_keyword = kwargs['cut_keyword']
             if isinstance(self.cut_keyword,str):
-                if len(self.cut_keyword.split()) == 0: self.cut_keyword = 'MAE'
+                if len(self.cut_keyword.split()) == 0:
+                    self.cut_keyword = 'MAE'
+                else:
+                    self.cut_keyword = self.cut_keyword.strip()
             else:
-                self.log['nice'] = False
-                self.log['info'] = 'Error: the parameter cut_keyword is not correctly defined'
-                return
+                print('cut_keyword is not correctly defined')
+                raise ValueError('wrong defined')
         else:
             self.cut_keyword = 'MAE'
-
 
         bo = False
         # NOTE: this number no less than 0.1
@@ -89,10 +85,8 @@ class GAML(Charge_gen_scheme):
         else:
             self.charge_extend_by = 0.3
         if bo:
-            self.log['nice'] = False
-            self.log['info'] = 'Error: the parameter charge_extend_by has to be a positive number'
-            return
-
+            print('charge_extend_by has to be a positive number')
+            raise ValueError('wrong defined')
 
         if 'ratio' in kwargs and kwargs['ratio'] is not None:
             self.ratio = kwargs['ratio']
@@ -105,50 +99,49 @@ class GAML(Charge_gen_scheme):
                 if bo: raise ValueError
                 cnt = self.ratio.count(':')
                 if cnt == 2:
-                    stmp = self.ratio[:self.ratio.find(':')]
-                    ratio_ml = 0 if len(stmp.split()) == 0 else float(stmp)
+                    p = self.ratio[:self.ratio.find(':')]
+                    ml = 0 if len(p.split()) == 0 else float(p)
 
-                    stmp = self.ratio[self.ratio.find(':')+1:self.ratio.rfind(':')]
-                    ratio_av = 0 if len(stmp.split()) == 0 else float(stmp)
+                    p = self.ratio[self.ratio.find(':')+1:self.ratio.rfind(':')]
+                    av = 0 if len(p.split()) == 0 else float(p)
 
-                    stmp = self.ratio[self.ratio.rfind(':')+1:]
-                    ratio_mu = 0 if len(stmp.split()) == 0 else float(stmp)
+                    p = self.ratio[self.ratio.rfind(':')+1:]
+                    mu = 0 if len(p.split()) == 0 else float(p)
 
                 elif cnt == 1:
-                    stmp = self.ratio[:self.ratio.find(':')]
-                    ratio_ml = 0 if len(stmp.split()) == 0 else float(stmp)
+                    p = self.ratio[:self.ratio.find(':')]
+                    ml = 0 if len(p.split()) == 0 else float(p)
 
-                    stmp = self.ratio[self.ratio.find(':')+1:]
-                    ratio_av = 0 if len(stmp.split()) == 0 else float(stmp)
+                    p = self.ratio[self.ratio.find(':')+1:]
+                    av = 0 if len(p.split()) == 0 else float(p)
 
-                    ratio_mu = 0.0
+                    mu = 0.0
 
                 elif cnt == 0:
-                    ratio_ml = float(self.ratio)
-                    ratio_av = 0.0
-                    ratio_mu = 0.0
+                    ml = float(self.ratio)
+                    av = 0.0
+                    mu = 0.0
                 else:
                     raise ValueError
-                tmp = ratio_mu + ratio_av + ratio_ml
+                tmp = mu + av + ml
                 if tmp == 0: raise ValueError
-                if ratio_mu < 0 or ratio_av < 0 or ratio_ml < 0: raise ValueError
-                if ratio_mu > 1.0 or ratio_av > 1.0 or ratio_ml > 1.0: raise ValueError
+                if mu < 0 or av < 0 or ml < 0: raise ValueError
+                if mu > 1.0 or av > 1.0 or ml > 1.0: raise ValueError
                 if tmp > 1.0:
                     # normalization
-                    ratio_ml = ratio_ml / tmp
-                    ratio_av = ratio_av / tmp
-                    ratio_mu = 1.0 - ratio_ml - ratio_av
+                    ml = ml / tmp
+                    av = av / tmp
+                    mu = 1.0 - ml - av
 
             except ValueError:
-                self.log['nice'] = False
-                self.log['info'] = 'Error: the parameter ratio is not correctly defined\n' + \
-                                   'Error: {:}'.format(kwargs['ratio'])
-                return
+                print('ratio is not correctly defined')
+                raise ValueError('wrong defined')
         else:
             self.ratio = '0.7:0.2:0.1'
-            ratio_ml = 0.7
-            ratio_av = 0.2
-            ratio_mu = 0.1
+            ml = 0.7
+            av = 0.2
+            mu = 0.1
+        self.ratio_ = [ml, av, mu]
 
         # for repeats filtration
         self.totlist = []
@@ -156,63 +149,88 @@ class GAML(Charge_gen_scheme):
         if 'file_path' in kwargs and kwargs['file_path'] is not None:
             self.file_path = kwargs['file_path']
             self.profilepath()
-            if not self.log['nice']: return
         else:
             self.file_path = None
 
         # three main possibles
-        # 1: only symmetry_list
-        # 2: only charge_path
-        # 3: only file_path
-        if self.charge_path is None and self.file_path is None and len(self.symmetry_list) == 0:
-            self.log['nice'] = False
-            self.log['info'] = 'Error: no generation type is defined'
-            return
+        # 1: has symmetry_list
+        # 2: has charge_path
+        # 3: has file_path
+        if self.charge_path is None and len(self.symmetry_list) == 0:
+            if self.file_path is None:
+                print('Error: no generation type is defined')
+                raise ValueError('no inputs')
+            self.symmetry_list = [i for i in range(len(self.mlinlist[0]))]
+        # parent method
+        self.get_file_lines()
 
-        # one potential bug for the future updates because of SHALLOW and DEEP copy
+        if self.charge_path is None and self.file_path is None:
+            rmax = 0
+            for i in self.symmetry_list:
+                if isinstance(i,int):
+                    rmax += 1
+                else:
+                    rmax += len(i)
+            self.charge_list = [[-self.charge_extend_by,self.charge_extend_by] for i in range(rmax)]
+
+
+
+    def run(self):
+        """rewrite parent run method
+
+        However, we can still call it by using super()
+        """
+        # potential bug: SHALLOW and DEEP copy
         # to make the following codes work properly
-        # the parent method, super().run() has to initialize list-attribute self.chargepair
+        # it parent method, super().run() will initialize self.chargepair
         # at every time when it is called
+        ml = self.ratio_[0]
+        av = self.ratio_[1]
+        mu = self.ratio_[2]
+        del self.ratio_
+
+        self.chargepair_av = []
+        self.chargepair_ml = []
+        self.chargepair_new = []
+        self.chargepair_nor = []
         if self.charge_path is None:
             if self.file_path is None:
                 # only symmetry_list
                 # for future debug
                 self.mlinlist = []
-                # use inherited method; no ratio related; no need filtration; DONE
-                self.run()
-                if not self.log['nice']: return
+                # inherited method: no ratio related; no need filtration; DONE
+                super().run()
                 self.ratio_new = '0.0:0.0:0.0'
+                self.chargepair_nor = self.chargepair
+                self.charge_list_nor = self.charge_list
             else:
                 # only file_path OR both file_path and symmetry_list
                 # relation between symmetry_list and file_path --> self.lglist
                 self.func_syml()
 
                 # recalculate ratio
-                if ratio_ml == 0 and ratio_av == 0:
-                    ratio_ml = 0.5
-                    ratio_av = 0.5
+                if ml == 0 and av == 0:
+                    ml = 0.5
+                    av = 0.5
                 else:
-                    if ratio_ml == 0:
-                        ratio_ml = 1 - ratio_av
-                    elif ratio_av == 0:
-                        ratio_av = 1 - ratio_ml
+                    if ml == 0:
+                        ml = 1 - av
+                    elif av == 0:
+                        av = 1 - ml
                     else:
-                        ratio_ml = ratio_ml / (ratio_ml+ratio_av)
-                        ratio_av = 1.0 - ratio_ml
-                self.ratio_new = '{:}:{:}:0.0'.format(ratio_ml,ratio_av)
+                        ml = ml / (ml+av)
+                        av = 1.0 - ml
+                self.ratio_new = '{:}:{:}:0.0'.format(ml,av)
 
                 # backup self.gennm
                 totnm = self.gennm
                 # redefine self.gennm
-                self.gennm = int(totnm*ratio_ml + 0.5)
+                self.gennm = int(totnm*ml + 0.5)
                 # generate ML: self.chargepair_ml
                 self.func_ml()
                 # use average method
                 self.gennm = totnm - self.gennm
-                if self.gennm > 0:
-                    self.func_av()
-                else:
-                    self.chargepair_av = []
+                if self.gennm > 0: self.func_av()
 
                 # reset self.gennm
                 self.gennm = totnm
@@ -224,64 +242,58 @@ class GAML(Charge_gen_scheme):
                 # only charge_path OR both charge_pair and symmetry_list
                 # consider mutation
                 # recalculate ratio
-                if ratio_ml == 0 and ratio_mu == 0:
-                    ratio_ml = 0.5
-                    ratio_mu = 0.5
+                if ml == 0 and mu == 0:
+                    ml = 0.5
+                    mu = 0.5
                 else:
-                    if ratio_ml == 0:
-                        ratio_ml = 1 - ratio_mu
-                    elif ratio_mu == 0:
-                        ratio_mu = 1 - ratio_ml
+                    if ml == 0:
+                        ml = 1 - mu
+                    elif mu == 0:
+                        mu = 1 - ml
                     else:
-                        ratio_ml = ratio_ml / (ratio_ml+ratio_mu)
-                        ratio_mu = 1.0 - ratio_ml
-                self.ratio_new = '{:}:0.0:{:}'.format(ratio_ml,ratio_mu)
+                        ml = ml / (ml+mu)
+                        mu = 1.0 - ml
+                self.ratio_new = '{:}:0.0:{:}'.format(ml,mu)
 
                 nm_av = 0
                 # for future debug
                 self.mlinlist = []
-                self.chargepair_av = []
             else:
                 # relation between symmetry_list and file_path --> self.lglist
                 self.func_syml()
                 # recalculate ratio
-                if ratio_ml == 0 and ratio_av == 0:
-                    ratio_ml = ratio_av = (1.0-ratio_mu) / 2
-                elif ratio_ml == 0 and ratio_mu == 0:
-                    ratio_ml = ratio_mu = (1.0-ratio_av) / 2
-                elif ratio_mu == 0 and ratio_av == 0:
-                    ratio_mu = ratio_av = (1.0-ratio_ml) / 2
+                if ml == 0 and av == 0:
+                    ml = av = (1.0-mu) / 2
+                elif ml == 0 and mu == 0:
+                    ml = mu = (1.0-av) / 2
+                elif mu == 0 and av == 0:
+                    mu = av = (1.0-ml) / 2
                 else:
-                    if ratio_ml == 0:
-                        ratio_ml = 1.0 - (ratio_mu+ratio_av)
-                    elif ratio_mu == 0:
-                        ratio_mu = 1.0 - (ratio_ml+ratio_av)
-                    elif ratio_av == 0:
-                        ratio_av = 1.0 - (ratio_ml+ratio_mu)
-                self.ratio_new = '{:}:{:}:{:}'.format(ratio_ml,ratio_av,ratio_mu)
+                    if ml == 0:
+                        ml = 1.0 - (mu+av)
+                    elif mu == 0:
+                        mu = 1.0 - (ml+av)
+                    elif av == 0:
+                        av = 1.0 - (ml+mu)
+                self.ratio_new = '{:}:{:}:{:}'.format(ml,av,mu)
 
                 # redefine self.gennm for average
-                self.gennm = int(totnm*ratio_av + 0.5)
+                self.gennm = int(totnm*av + 0.5)
                 nm_av = self.gennm
-                self.func_av()
+                if self.gennm > 0: self.func_av()
 
 
             # generate ML: self.chargepair_ml
-            self.gennm = int(totnm*ratio_ml + 0.5)
+            self.gennm = int(totnm*ml + 0.5)
             nm_ml = self.gennm
-            if nm_ml > 0:
-                self.func_ml()
-            else:
-                # for future debug
-                self.chargepair_ml = []
+            if nm_ml > 0: self.func_ml()
 
             # generate nor_charge_list: self.chargepair_nor
             # redefine self.gennm
             self.gennm = int( (totnm - nm_av - nm_ml) / 2 )
             nm_nor = self.gennm
             if self.gennm > 0:
-                self.run(filterlist=self.totlist)
-                if not self.log['nice']: return
+                super().run(filterlist=self.totlist)
                 # rename ATTENTION
                 self.chargepair_nor = self.chargepair
 
@@ -341,32 +353,27 @@ class GAML(Charge_gen_scheme):
                     self.charge_list_new = self.charge_list
 
                     # generation
-                    self.run(filterlist=self.totlist)
-                    if not self.log['nice']: return
+                    super().run(filterlist=self.totlist)
                     self.chargepair_new = self.chargepair
-                else:
-                    self.chargepair_new = []
+
             # reset self.gennm
             self.gennm = totnm
 
 
+
     def profilepath(self):
         """process file_path based on self.error_tolerance
-           Result:
-                self.mlinlist; self.totlist"""
 
-        log = file_size_check(self.file_path,fsize=500)
-        if not log['nice']:
-            self.log['nice'] = False
-            self.log['info'] = log['info']
-            return 0
-        log, profile = func_file_input(self.file_path,dtype=float,bool_tail=True,cut_keyword=self.cut_keyword,
-                                       bool_force_cut_kw=True)
-        if not log['nice']:
-            self.log['nice'] = False
-            self.log['info'] = log['info']
-            return 0
-
+        Attributes:
+            self.mlinlist
+            self.totlist
+        """
+        file_size_check(self.file_path,fsize=500)
+        profile = func_file_input(self.file_path,
+                                  dtype=float,
+                                  bool_tail=True,
+                                  cut_keyword=self.cut_keyword,
+                                  bool_force_cut_kw=True)
 
         self.mlinlist = []
         for i in profile:
@@ -380,44 +387,49 @@ class GAML(Charge_gen_scheme):
                 elif i[-1] <= self.error_tolerance:
                     self.mlinlist.append(i[:-1])
 
-        print('For the error_tolerance: {:}'.format(self.error_tolerance))
-        print('The selected number of ML_charge_list is: {:d}'.format(len(self.mlinlist)))
+        if len(self.mlinlist) < 5:
+            print('the number of entry to be trained has to be no less than 5')
+            raise ValueError('too less parameters')
+
+        print('For error_tolerance: {:}'.format(self.error_tolerance))
+        print('Number of ML_charge_list is: {:}'.format(len(self.mlinlist)))
         if self.bool_abscomp:
             print('Note: the absolute comparison is implemented')
         else:
-            print('Note: the average comparison is implemented, which may cause positive and negative cancellation')
-        print('\nDo you want to continue? y/yes for continue, else quit?',end='    ')
+            print('Note: the average comparison is implemented')
+            print('      which may cause positive and negative cancellation')
+        print('\nDo you want to continue? y/yes, else quit?',end='    ')
 
-        getinput = input()
-        if getinput.lower() not in ['y', 'yes']:
-            self.log['nice'] = False
-            self.log['info'] = ''
+        get = input()
+        if get.lower() not in ['y', 'yes']:
             print('Warning: you have decided to quit the ML charge generation')
-            return 0
-
-        if len(self.mlinlist) < 5:
-            self.log['nice'] = False
-            self.log['info'] = 'Error: for machine learning, the number of entry to be trained has to be no less than 5'
-            return 0
-
-        return 1
+            raise RuntimeError('user decided quit')
 
 
 
     def func_adjust(self,inlist):
-        """For a 1D number list, randomly choose a point which is not specified in refcntlist
-           to fit its balanced-length summation to be equal to total, during the process, this
-           value is rounded by nmround and set to be smaller than threshold, this adjustment
-           is always less than 0.1
+        """
+        For a 1D number list, randomly choose a point which is not specified
+        in refcntlist to fit its balanced-length summation to be equal to total,
+        during the process, this value is rounded by nmround and set to be
+        smaller than threshold, this adjustment is always less than 0.1
 
-           Parameter:
-                inlist, self.lglist, self.reflist, self.totol_charge, self.nmround, self.threshold
-           Return:
-                boolean, inlist"""
+        Parameter:
+            inlist
+            self.lglist
+            self.reflist
+            self.totol_charge
+            self.nmround
+            self.threshold
+
+        Returns:
+            bool    :   True when done
+            inlist  :   List
+        """
 
         def get_sum(inlist,lglist,cntlist):
             i = 0
-            tsum = 0
+            tsum = 0.0
             while i < len(inlist):
                 if i not in cntlist:
                     tsum += inlist[i] * lglist[i]
@@ -442,17 +454,15 @@ class GAML(Charge_gen_scheme):
                 break
 
         # adjust fitp position value
-        delta_p = (self.total_charge - tsum) / self.lglist[fitp]
-        if abs(delta_p) < 1 / 10**self.nmround:
-            delta_p = -1 / 10**self.nmround if delta_p < 0 else 1 / 10**self.nmround
-        elif abs(delta_p) > 0.1:
-            delta_p = -0.1 if delta_p < 0 else 0.1
+        dp = (self.total_charge - tsum) / self.lglist[fitp]
+        if abs(dp) < 1 / 10**self.nmround:
+            dp = -1.0 / 10**self.nmround if dp < 0 else 1.0 / 10**self.nmround
+        elif abs(dp) > 0.1:
+            dp = -0.1 if dp < 0 else 0.1
 
-        value_p = inlist[fitp] + delta_p
-
-
-        if abs(value_p) < self.threshold:
-            inlist[fitp] = round(value_p,self.nmround)
+        vp = inlist[fitp] + dp
+        if abs(vp) < self.threshold:
+            inlist[fitp] = round(vp,self.nmround)
             tsum = get_sum(inlist,self.lglist,cntlist)
             if round(tsum-self.total_charge,self.nmround+2) == 0:
                 return True,inlist
@@ -461,13 +471,18 @@ class GAML(Charge_gen_scheme):
 
 
     def func_av(self):
-        """Randomly choose no bigger than 5 pair from self.mlinlist, average them as a new inputs
+        """Average method
 
-           Update:
-                self.totlist
-           Result:
-                self.chargepair_av"""
+        Randomly choose no bigger than 5 pair from self.mlinlist,
+        average them as a new inputs
 
+        Update:
+            self.totlist
+
+        Attributes:
+            self.chargepair_av
+        """
+        cnt = 0
         self.chargepair_av = []
         lth = len(self.mlinlist[0])
         while len(self.chargepair_av) < self.gennm:
@@ -480,14 +495,11 @@ class GAML(Charge_gen_scheme):
                 if len(reflist) >= nm:
                     break
 
-            i = 0
             averlist = []
-            while i < lth:
-                v = 0
-                for j in reflist:
-                    v += self.mlinlist[j][i]
+            for i in range(lth):
+                v = 0.0
+                for j in reflist: v += self.mlinlist[j][i]
                 averlist.append(round((v/nm),self.nmround))
-                i += 1
 
             bo,averlist = self.func_adjust(averlist)
             if bo:
@@ -519,9 +531,9 @@ class GAML(Charge_gen_scheme):
                     if (not self.bool_nozero) or (not 0 in averlist):
                         # inherited method
                         # self-check and overall check
-                        if (not self.func_bool_repeats(self.chargepair_av,averlist)) and \
-                            (not self.func_bool_repeats(self.totlist,averlist)):
-                            self.chargepair_av.append(averlist)
+                        if not self.func_bool_repeats(self.chargepair_av,averlist):
+                            if not self.func_bool_repeats(self.totlist,averlist):
+                                self.chargepair_av.append(averlist)
 
         # finally update self.totlist
         for i in self.chargepair_av: self.totlist.append(i)
@@ -529,28 +541,27 @@ class GAML(Charge_gen_scheme):
 
 
     def func_syml(self):
-        """This method is to used to get corresponded length list between self.symmetry_list and self.mlinlist,
-           at least one of them exists"""
-
+        """
+        get corresponded length list between self.symmetry_list and
+        self.mlinlist, at least one of them exists
+        """
         if len(self.symmetry_list) != 0:
             if len(self.mlinlist) != 0 and len(self.symmetry_list) != len(self.mlinlist[0]):
-                self.log['nice'] = False
-                self.log['info'] = 'Error: the symmetry_list and the input trainning file are not corresponded'
-                return
+                print('symmetry_list and input training file')
+                raise ValueError('not correspond')
             self.lglist = [1 if isinstance(i,int) else len(i) for i in self.symmetry_list]
         else:
             self.lglist = [1 for i in range(len(self.mlinlist[0]))]
 
 
+
     def func_ml(self):
-        """This method is used to generte number of self.gennm charge_pairs based on the chosen charge_list,
-           symmetry_list and counter_list
+        """generte number based on input lists
 
-           Update:
-                self.totlist
-           Result:
-                self.chargepair_ml"""
-
+        Attributes:
+            self.totlist
+            self.chargepair_ml
+        """
         self.chargepair_ml = []
         lth = len(self.mlinlist)
         lgth = len(self.mlinlist[0])
@@ -578,8 +589,9 @@ class GAML(Charge_gen_scheme):
             # process the counterpart charge
             for cnt in self.reflist:
                 while True:
-                    bo,v,vnm,s,snm = func_roundoff_error(lrs[cnt[0]],cnt[1],lrs[cnt[2]],
-                                                         cnt[3],nmround=self.nmround)
+                    bo,v,vnm,s,snm = func_roundoff_error(lrs[cnt[0]],cnt[1],
+                                                         lrs[cnt[2]],cnt[3],
+                                                         nmround=self.nmround)
                     lrs[cnt[0]] = v
                     lrs[cnt[2]] = s
                     if bo:
@@ -587,8 +599,9 @@ class GAML(Charge_gen_scheme):
 
             for cnt in self.reflist:
                 while True:
-                    bo,v,vnm,s,snm = func_roundoff_error(lrt[cnt[0]],cnt[1],lrt[cnt[2]],
-                                                         cnt[3],nmround=self.nmround)
+                    bo,v,vnm,s,snm = func_roundoff_error(lrt[cnt[0]],cnt[1],
+                                                         lrt[cnt[2]],cnt[3],
+                                                         nmround=self.nmround)
                     lrt[cnt[0]] = v
                     lrt[cnt[2]] = s
                     if bo:
@@ -609,9 +622,9 @@ class GAML(Charge_gen_scheme):
                 if not bool_limit:
                     # check self.bool_nozero and repeats
                     if (not self.bool_nozero) or (not 0 in lrs):
-                        if (not self.func_bool_repeats(self.chargepair_ml,lrs)) and \
-                            (not self.func_bool_repeats(self.totlist,lrs)):
-                            self.chargepair_ml.append(lrs)
+                        if not self.func_bool_repeats(self.chargepair_ml,lrs):
+                            if not self.func_bool_repeats(self.totlist,lrs):
+                                self.chargepair_ml.append(lrs)
 
             bo,lrt = self.func_adjust(lrt)
             if bo:
@@ -628,113 +641,115 @@ class GAML(Charge_gen_scheme):
                 if not bool_limit:
                     # check self.bool_nozero and repeats
                     if (not self.bool_nozero) or (not 0 in lrt):
-                        if (not self.func_bool_repeats(self.chargepair_ml,lrt)) and \
-                            (not self.func_bool_repeats(self.totlist,lrt)):
-                            self.chargepair_ml.append(lrt)
+                        if not self.func_bool_repeats(self.chargepair_ml,lrt):
+                            if not self.func_bool_repeats(self.totlist,lrt):
+                                self.chargepair_ml.append(lrt)
 
 
-        # since for each loop self.chargepair_ml may append two lists, it is important to check
-        # its length to make sure it is always no bigger than self.gennm
+        # since for each loop self.chargepair_ml may append two lists,
+        # it is important to double check to make sure
+        # its length is always no bigger than self.gennm
         if len(self.chargepair_ml) > self.gennm:
-            dump_value = self.chargepair_ml.pop()
+            tmp = self.chargepair_ml.pop()
 
         # finally update self.totlist
         for i in self.chargepair_ml: self.totlist.append(i)
 
 
+
     def file_print(self):
         """overwrite parent method"""
-
         self.fname = file_gen_new(self.fname,fextend='txt',foriginal=False)
-        print('The combined generated charge file name is:',end='    ')
-        print(self.fname)
+        print('Note: new file < {:} >'.format(self.fname))
 
         with open(self.fname,mode='wt') as f:
-            f.write('# This is the genetic algorithm machine learning generated charge file\n')
-            f.write('# The total number of generated charge_pairs are: < {:} >\n\n'.format(self.gennm))
+            f.write('# Genetic Algorithm Machine Learning\n')
+            f.write('# Total number of charge_pairs are: < {:} >\n\n'.format(self.gennm))
 
-            if len(self.prolist.symmetry_list) != 0:
-                f.write('# The symmetry_list used is:\n')
-                f.write('#    {:}\n\n'.format(self.prolist.file_line_symmetry))
-                if len(self.prolist.offset_list) != 0:
-                    f.write('# The offset_list used is: < {:} >\n'.format(self.prolist.file_line_offset))
-                    f.write('# The offset_nm used is: < {:} >\n\n'.format(self.offset_nm))
+            if len(self.symmetry_list) != 0:
+                f.write('# symmetry_list: < {:} >\n'.format(self.file_line_symmetry))
+                if len(self.offset_list) != 0:
+                    f.write('# offset_list: < {:} >\n'.format(self.file_line_offset))
+                    f.write('# offset_nm: < {:} >\n'.format(self.offset_nm))
 
-            if len(self.reflist) != 0:
-                f.write('# The counter_list used is: < {:} >\n\n'.format(self.prolist.file_line_counter))
+            if len(self.counter_list) != 0:
+                f.write('# counter_list: < {:} >\n'.format(self.file_line_counter))
 
             if len(self.pn_limit) != 0:
                 tmp = [str(i[0]+1) + i[1] for i in self.pn_limit]
-                f.write('# The pn_limit used is:\n#    {:}\n\n'.format(tmp))
+                line = ','.join(tmp).strip(',')
+                f.write('# pn_limit: < {:} >\n\n'.format(line))
 
-            f.write('# The input ratio is: (ML:Average:Mutation) < {:} >\n'.format(self.ratio))
-            f.write('# The recalc ratio is: (ML:Average:Mutation) < {:} >\n'.format(self.ratio_new))
-            f.write('# For each entry, the threshold used is: < {:} >\n'.format(self.threshold))
-            f.write('# The total_charge is: < {:} >\n\n'.format(self.total_charge))
-            f.write('# The bool_neutral is: < {:} >\n'.format('ON' if self.bool_neutral else 'OFF'))
-            f.write('# The bool_nozero is: < {:s} >\n\n'.format('ON' if self.bool_nozero else 'OFF'))
+            f.write('# ratio: (ML:Average:Mutation) < {:} >\n'.format(self.ratio))
+            f.write('# using ratio: (ML:Average:Mutation) < {:} >\n'.format(self.ratio_new))
+            f.write('# threshold: < {:} >\n'.format(self.threshold))
+            f.write('# total_charge: < {:} >\n\n'.format(self.total_charge))
+            f.write('# bool_neutral: < {:} >\n'.format(self.bool_neutral))
+            f.write('# bool_nozero: < {:} >\n\n'.format(self.bool_nozero))
 
             if self.file_path is not None:
-                f.write('# The file_path used is: < {:} >\n'.format(self.file_path))
+                f.write('# file_path: < {:} >\n'.format(self.file_path))
 
             if self.charge_path is not None:
-                f.write('# The charge_path used is: < {:} >\n\n'.format(self.charge_path))
+                f.write('# charge_path: < {:} >\n\n'.format(self.charge_path))
 
-                nm_nor = len(self.chargepair_nor)
-                if nm_nor > 0:
-                    f.write('# The normal charge_range used is:\n')
-                    j = 1
-                    for i in self.charge_list_nor:
-                        f.write('#  ATOM  {:>4} {:>7}  {:>7}\n'.format(j,i[0],i[1]))
-                        j += 1
-                    f.write('\n\n')
-
-                    print('The number of charge_pairs generated by the normal charge range are: ',nm_nor)
-                    f.write('# The charge_pair generated by normal charge_range: ({:})\n\n'.format(nm_nor))
-                    for i in self.chargepair_nor:
-                        f.write('PAIR  ')
-                        for j in i:
-                            f.write('{:>7}'.format(j))
-                        f.write('\n')
-
-                    nm_new = len(self.chargepair_new)
-                    if nm_new > 0:
-                        f.write('\n\n# The value of charge_extention is: < {:} >\n'.format(self.charge_extend_by))
-                        f.write('# With the addition or subtraction, or keeping constant, in both low and high bound\n')
-                        f.write('# The new charge_range used is:\n\n')
-                        j = 1
-                        for i in self.charge_list_new:
-                            f.write('#  ATOM  {:>4} {:>7}  {:>7}\n'.format(j,round(i[0],3),round(i[1],3)))
-                            j += 1
-                        f.write('\n\n')
-
-                        print('The number of charge_pairs generated by the new charge range are: ',nm_new)
-                        f.write('# The charge_pair generated by modified charge_range: ({:})\n\n'.format(nm_new))
-                        for i in self.chargepair_new:
-                            f.write('PAIR  ')
-                            for j in i:
-                                f.write('{:>7}'.format(j))
-                            f.write('\n')
-
-            if self.file_path is not None:
+            nm_nor = len(self.chargepair_nor)
+            if nm_nor > 0:
+                f.write('# normal charge_range:\n')
+                j = 1
+                for i in self.charge_list_nor:
+                    f.write('#ATOM  {:>4} {:>7}  {:>7}\n'.format(j,i[0],i[1]))
+                    j += 1
                 f.write('\n\n')
-                nm_ml = len(self.chargepair_ml)
-                if nm_ml != 0:
-                    print('The number of charge_pairs generated by the Genetic Algorithm are: ',nm_ml)
-                    f.write('# The charge_pair generated by Genetic Algorithm: ({:})\n\n'.format(nm_ml))
-                    for i in self.chargepair_ml:
-                        f.write('PAIR  ')
-                        for j in i:
-                            f.write('{:>7}'.format(j))
-                        f.write('\n')
-                nm_av = len(self.chargepair_av)
-                if nm_av != 0:
-                    print('The number of charge_pairs generated by the Average are: ',nm_av)
-                    f.write('\n\n# The charge_pair generated by Average: ({:})\n\n'.format(nm_av))
-                    for i in self.chargepair_av:
-                        f.write('PAIR  ')
-                        for j in i:
-                            f.write('{:>7}'.format(j))
-                        f.write('\n')
+
+                print('Number of charge pairs generated by the normal charge range are: ',nm_nor)
+                f.write('# The charge_pair generated by normal charge_range: ({:})\n\n'.format(nm_nor))
+                for i in self.chargepair_nor:
+                    f.write('PAIR  ')
+                    for j in i:
+                        f.write('{:>7}'.format(j))
+                    f.write('\n')
+
+            nm_new = len(self.chargepair_new)
+            if nm_new > 0:
+                f.write('\n\n# charge_extend_by: < {:} >\n'.format(self.charge_extend_by))
+                f.write('# With the addition or subtraction, or keeping constant, in both low and high bound\n')
+                f.write('# New charge_range:\n\n')
+                j = 1
+                for i in self.charge_list_new:
+                    f.write('#ATOM  {:>4} {:>7}  {:>7}\n'.format(j,round(i[0],3),round(i[1],3)))
+                    j += 1
+                f.write('\n\n')
+
+                print('Number of charge pairs generated by the new charge range are: ',nm_new)
+                f.write('# The charge_pair generated by modified charge_range: ({:})\n\n'.format(nm_new))
+                for i in self.chargepair_new:
+                    f.write('PAIR  ')
+                    for j in i:
+                        f.write('{:>7}'.format(j))
+                    f.write('\n')
+
+            if self.file_path is not None: f.write('\n\n')
+
+            nm_ml = len(self.chargepair_ml)
+            if nm_ml > 0:
+                print('Number of charge pairs generated by the Genetic Algorithm are: ',nm_ml)
+                f.write('# The charge_pair generated by Genetic Algorithm: ({:})\n\n'.format(nm_ml))
+                for i in self.chargepair_ml:
+                    f.write('PAIR  ')
+                    for j in i:
+                        f.write('{:>7}'.format(j))
+                    f.write('\n')
+
+            nm_av = len(self.chargepair_av)
+            if nm_av > 0:
+                print('Number of charge_pairs generated by the Average are: ',nm_av)
+                f.write('\n\n# The charge_pair generated by Average: ({:})\n\n'.format(nm_av))
+                for i in self.chargepair_av:
+                    f.write('PAIR  ')
+                    for j in i:
+                        f.write('{:>7}'.format(j))
+                    f.write('\n')
+
 
 

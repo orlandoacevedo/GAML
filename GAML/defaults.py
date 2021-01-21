@@ -3,6 +3,7 @@
 If possible, parameters should be in lower case
 """
 
+
 defaults_charge_gen_range = {
     'command'       :   'charge_gen_range',
     'charge_path'   :   None,

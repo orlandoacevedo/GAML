@@ -1,18 +1,18 @@
 """Parse command line input
 
-return:
-    log `dict`:
-        it contains two keys 'nice' & 'info'
-        `log['nice'] == False` means error happens
-        please check it use `log['info']`
+Returns:
+    log (dict):
+        nice    :   False means error happens
+        info    :   Error message
 
-    procmd `1D dict`:
+    procmd (dict):
         { key:value, key:value,  ...}
 """
 
 import sys
 import argparse
 from GAML.__init__ import __version__
+
 
 def parsecmd(args):
     """Parse command line input"""
@@ -195,5 +195,6 @@ def parsecmd(args):
         procmd['atomtype_list'] = value
 
     return log, procmd
+
 
 

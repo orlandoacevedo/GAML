@@ -1,120 +1,115 @@
 from GAML.functions import file_gen_new, file_size_check, func_file_input
 
+
 class File_gen_gromacstop(object):
-    """
-    This class is used to generate GROMACS topology file based on given charge_path file,
-    to be more precise, the symmetry_list also can be input as a reference. Generally,
-    the charge_path either can be a path linking a real file, or can be list.
+    """Generate GROMACS topology file based on given charge_path file
 
-    However, if symmetry_list does not exist, the sequence of charge pairs is determined
-    by the [systems] directive in the GROMACS topology file.
-    """
+    Args:
+        charge_path (str | list): charge list, required
+        symmetry_list (str|list): corresponding symmetry_list
+        toppath     (str)       : reference topology file, required
+        in_keyword  (str)       : read leading word
+        cut_keyword (str)       : read triming char
+        reschoose   (str)       : choose reside
+        gennm       (str | list): number of generations
+        fname       (str)       : output file names
 
+    Returns:
+        None    :   topology files
+
+    Note:
+        If symmetry_list does not exist, the sequence of charge pairs is
+        determined by the [systems] directive in input topology file.
+    """
     def __init__(self,*args,**kwargs):
-        self.log = {'nice':True,'info':''}
-
         if 'reschoose' in kwargs and kwargs['reschoose'] is not None:
             if isinstance(kwargs['reschoose'],str):
-                if len(kwargs['reschoose'].split()) != 0:
-                    self.reschoose = kwargs['reschoose']
+                if len(kwargs['reschoose'].strip()) != 0:
+                    self.reschoose = kwargs['reschoose'].strip()
                 else:
                     self.reschoose = 'ALL'
             else:
-                self.log['nice'] = False
-                self.log['info'] = 'Error: parameter reschoose is not correctly defined'
+                print(kwargs['reschose'])
+                raise ValueError('reschoose is wrong')
         else:
             self.reschoose = 'ALL'
-
 
         bo = False
         if 'toppath' in kwargs and kwargs['toppath'] is not None:
             if isinstance(kwargs['toppath'],str):
-                if len(kwargs['toppath'].split()) != 0:
-                    self.toppath = kwargs['toppath']
+                if len(kwargs['toppath'].strip()) != 0:
+                    self.toppath = kwargs['toppath'].strip()
                 else:
                     bo = True
             else:
-                self.log['nice'] = False
-                self.log['info'] = 'Error: parameter toppath is not correctly defined'
-            self.log = file_size_check(self.toppath,fsize=50)
-            if not self.log['nice']: return
+                bo = True
+            file_size_check(self.toppath,fsize=50)
         else:
             bo = True
         if bo:
-            self.log['nice'] = False
-            self.log['info'] = 'Error: the parameter toppath is missing'
-            return
-
+            raise ValueError('toppath is wrong')
 
         if 'in_keyword' in kwargs and kwargs['in_keyword'] is not None:
             if isinstance(kwargs['in_keyword'],str):
-                if len(kwargs['in_keyword'].split()) != 0:
-                    self.in_keyword = kwargs['in_keyword']
+                if len(kwargs['in_keyword'].strip()) != 0:
+                    self.in_keyword = kwargs['in_keyword'].strip()
                 else:
                     self.in_keyword = 'PAIR'
             else:
-                self.log['nice'] = False
-                self.log['info'] = 'Error: parameter in_keyword is not correctly defined'
+                raise ValueError('in_keyword is wrong')
         else:
             self.in_keyword = 'PAIR'
 
         if 'cut_keyword' in kwargs and kwargs['cut_keyword'] is not None:
             if isinstance(kwargs['cut_keyword'],str):
-                if len(kwargs['cut_keyword'].split()) != 0:
-                    self.cut_keyword = kwargs['cut_keyword']
+                if len(kwargs['cut_keyword'].strip()) != 0:
+                    self.cut_keyword = kwargs['cut_keyword'].strip()
                 else:
                     self.cut_keyword = 'MAE'
             else:
-                self.log['nice'] = False
-                self.log['info'] = 'Error: parameter cut_keyword is not correctly defined'
+                raise ValueError('cut_keyword is wrong')
         else:
             self.cut_keyword = 'MAE'
 
         if 'fname' in kwargs and kwargs['fname'] is not None:
             if isinstance(kwargs['fname'],str):
-                if len(kwargs['fname'].split()) != 0:
-                    self.fname = kwargs['fname']
+                if len(kwargs['fname'].strip()) != 0:
+                    self.fname = kwargs['fname'].strip()
                 else:
                     self.fname = 'GenGromacsTopfile'
             else:
-                self.log['nice'] = False
-                self.log['info'] = 'Error: parameter fname is not correctly defined'
+                raise ValueError('fname is wrong')
         else:
             self.fname = 'GenGromacsTopfile'
-
 
         if 'charge_path' in kwargs and kwargs['charge_path'] is not None:
             # func_file_input
             charge_path = kwargs['charge_path']
             if isinstance(charge_path,str):
-                self.log = file_size_check(charge_path,fsize=50)
-                if not self.log['nice']: return
+                file_size_check(charge_path,fsize=50)
                 self.file_line_chargepath = charge_path
-                self.log, self.prochargefile = func_file_input(charge_path,comment_char='#',dtype=float,
-                                                          bool_tail=False,in_keyword=self.in_keyword,
-                                                          cut_keyword=self.cut_keyword)
-                if not self.log['nice']: return
+                self.prochargefile = func_file_input(charge_path,
+                                                comment_char='#',
+                                                dtype=float,
+                                                bool_tail=False,
+                                                in_keyword=self.in_keyword,
+                                                cut_keyword=self.cut_keyword)
             elif isinstance(charge_path,list):
-                dump_value = self._f_list_dcheck(charge_path)
-                if not self.log['nice']: return
+                self.check_list(charge_path)
                 self.prochargefile = charge_path
                 self.file_line_chargepath = 'Note: charge_path input is a list'
             else:
-                self.log['nice'] = False
-                self.log['info'] = 'Error: wrong defined charge_path parameter\n' + \
-                                   'Error: it only can either be a list or a real file path'
-                return
+                print(charge_path)
+                raise ValueError('charge_path is wrong')
         else:
-            self.log['nice'] = False
-            self.log['info'] = 'Error: the parameter charge_path is missing'
-            return
-
+            raise ValueError('charge_path is missing')
 
         bo = False
-        # Note: gennm == 0 means outputs are equal to lenght of inputs
+        # Note: gennm == 0 means outputs are equal to length of inputs
         if 'gennm' in kwargs and kwargs['gennm'] is not None:
             if isinstance(kwargs['gennm'],int):
                 self.gennm = kwargs['gennm']
+                if self.gennm < 0: bo = True
             elif isinstance(kwargs['gennm'],str):
                 if len(kwargs['gennm'].split()) == 0:
                     self.gennm = 0
@@ -129,31 +124,75 @@ class File_gen_gromacstop(object):
         else:
             self.gennm = 0
         if bo:
-            self.log['nice'] = False
-            self.log['info'] = 'Error: the gennm has to be a positive integer\n' + \
-                               'Error gennm: '+ str(kwargs['gennm'])
-            return
-        self.gennm = min(self.gennm, len(self.prochargefile))
+            raise ValueError('gennm is wrong, it has to be a positive integer')
+
         if self.gennm == 0: self.gennm = len(self.prochargefile)
-
-
-        # Note: each human-readable indice of symmetry_list has to deduct 1 for python-list
-        bo = False
-        if 'symmetry_list' in kwargs and kwargs['symmetry_list'] is not None:
-            if isinstance(kwargs['symmetry_list'],list):
-                self.symmetry_list = kwargs['symmetry_list'] if len(kwargs['symmetry_list']) != 0 else None
-            elif isinstance(kwargs['symmetry_list'],str):
-                self.symmetry_list = kwargs['symmetry_list'] if len(kwargs['symmetry_list'].split()) != 0 else None
-            else:
-                bo = True
+        if self.gennm < len(self.prochargefile):
+            print('Warning: number of charge entries are larger than gennm')
         else:
-            self.symmetry_list = None
-        if not bo and isinstance(self.symmetry_list,str):
-            try:
-                self.symmetry_list = eval(self.symmetry_list)
-            except:
-                bo = True
-        if not bo and self.symmetry_list is not None:
+            self.gennm = len(self.prochargefile)
+
+        # Note: symmetry_list has to deduct 1 for python-list notation
+        if 'symmetry_list' in kwargs and kwargs['symmetry_list'] is not None:
+            self.check_symmetry(kwargs['symmetry_list'])
+        else:
+            self.symmetry_list = []
+
+        self.pro_topfile(self.toppath)
+
+        # check the relation topfile with symmetry_list
+        if self.symmetry_list is None or len(self.symmetry_list) == 0:
+            self.symmetry_list = list(range(len(self.atomndx)))
+        elif len(self.atomndx) < self.symmetry_length:
+            raise ValueError('symmetry_list & topfile are not corresponded')
+        elif len(self.atomndx) > self.symmetry_length:
+            print('Note: only first residue is going to be changed')
+
+        # check the relation chargefile with symmetry_list
+        count = 1
+        lth = len(self.symmetry_list)
+        ls = []
+        for i in self.prochargefile[:self.gennm]:
+            if len(i) < lth:
+                raise ValueError('symmetry_list & topfile are not corresponded')
+            elif len(i) > lth:
+                ls.append(count)
+            count += 1
+
+        if len(ls) > 0:
+            print('Warning: number of charges are larger atoms in the topfile')
+            print('       : truncation will happen')
+            print('       : the number of this charge pair is:')
+            for count in ls:
+                print(count,end='   ')
+            print()
+
+
+
+    def check_symmetry(self,key):
+        """check symmetry_list
+
+        Attributes:
+            self.symmetry_length
+            self.symmetry_list
+        """
+        bo = False
+        if key is None:
+            self.symmetry_list = []
+        elif isinstance(key,list):
+            self.symmetry_list = key if len(key) != 0 else []
+        elif isinstance(key,str):
+            if len(key.strip()) == 0:
+                self.symmetry_list = []
+            else:
+                try:
+                    self.symmetry_list = eval(key.strip())
+                except:
+                    bo = True
+        else:
+            bo = True
+
+        if not bo and len(self.symmetry_list) != 0:
             flatten = []
             for i in self.symmetry_list:
                 if isinstance(i,int):
@@ -168,121 +207,79 @@ class File_gen_gromacstop(object):
                 else:
                     bo = True
                 if bo: break
-            symmetry_length = len(flatten)
-            if symmetry_length != len(set(flatten)): bo = True
+            self.symmetry_length = len(flatten)
+            if self.symmetry_length != len(set(flatten)): bo = True
         if bo:
-            self.log['nice'] = False
-            self.log['info'] = 'Error: the parameter symmetry_list is not correctly defined'
-            return
-
-
-        dump_value = self._f_pro_topfile(self.toppath)
-        if not self.log['nice']: return
-
-        # check the relation topfile with symmetry_list
-        if self.symmetry_list is None:
-            self.symmetry_list = list(range(len(self.atomndx)))
-        elif len(self.atomndx) < symmetry_length:
-            self.log['nice'] = False
-            self.log['info'] = 'Error: the symmetry_list and topfile are not corresponded'
-            return
-        elif len(self.atomndx) > symmetry_length:
-            print('Warning: symmetry_list only makes changes on the first residue')
-
-
-        # check the relation chargefile with symmetry_list
-        count = 1
-        lth = len(self.symmetry_list)
-        ls = []
-        for i in self.prochargefile[:self.gennm]:
-            if len(i) < lth:
-                self.log['nice'] = False
-                self.log['info'] = 'Error: the chargefile and topfile are not corresponded'
-                return
-            elif len(i) > lth:
-                ls.append(count)
-            count += 1
-
-        if len(ls) > 0:
-            print('Warning: the number of charges are bigger than the number of atoms in the topfile')
-            print('       : truncation will happen, only the number of leading charges will be used')
-            print('       : the number of this charge pair is:')
-            for count in ls:
-                print(count,end='   ')
-            print()
+            print(key)
+            raise ValueError('symmetry_list is wrong')
 
 
 
-    def _f_list_dcheck(self,list_input):
-        """check if the input list dimensions and data-type, only 2D list is valid"""
-
-        self.log['nice'] = True
-        self.log['info'] = 'Error: the input_list is not properly defined'
+    def check_list(self,list_input):
+        """check input list dimensions and data-type, only 2D list is valid"""
         if not isinstance(list_input,list):
-            self.log['nice'] = False
-            return
+            raise ValueError('input is not in list type')
         for i in list_input:
             if isinstance(i,list) and len(i) != 0:
                 for j in i:
                     if not isinstance(j,(float,int)):
-                        self.log['nice'] = False
-                        return 0
+                        print(j)
+                        raise ValueError('cannot convert')
             else:
-                self.log['nice'] = False
-                return 0
-        return 1
+                print(i)
+                raise ValueError('wrong defined')
+
 
 
     def procomments(self,string):
+        """remove comments"""
         if string.find(';') == -1:
             return string
         return string[:string.find(';')]
 
 
-    def _f_pro_topfile(self,toppath):
-        """process the topfile, and remove its all comments to a more tight format,
-           the final parameters are, self.protopfile, self.atomtypendx, self.atomndx"""
 
-        # self.protopfile
-        with open(toppath,mode='rt') as f:
-            self.protopfile = f.readlines()
+    def pro_topfile(self,toppath):
+        """process the topfile
+
+        Attributes:
+            self.topfile
+            self.atomtypendx
+            self.atomndx
+        """
+        # self.topfile
+        with open(toppath,mode='rt') as f: self.topfile = f.readlines()
 
         i = 0
         atomtypendx = []
         atomndx = []
         molndx = []
         syslist = []
-        while i < len(self.protopfile):
-
+        while i < len(self.topfile):
             # remove the comments
-            line = self.procomments(self.protopfile[i])
+            line = self.procomments(self.topfile[i])
 
             if line.find('[') != -1:
-                strtmp = ''
-                for char in line:
-                    if char != ' ' and char != '\t' and char != '\n':
-                        strtmp += char
-                line = strtmp
+                line = line.strip().replace(' ','')
 
             if line == '[atomtypes]':
                 j = i + 1
                 while True:
-                    if self.protopfile[j].find('[') != -1 or j >= len(self.protopfile):
+                    if j>=len(self.topfile) or self.topfile[j].find('[') != -1:
                         break
-                    subline = self.protopfile[j]
-                    subltmp = self.procomments(subline).split()
 
-                    if len(subltmp) == 0 or (len(subltmp) > 0 and subltmp[0][0] in ['#',';']):
+                    line = self.topfile[j]
+                    subline = self.procomments(line).strip()
+                    if len(subline) == 0 or subline[0] in ['#',';']:
                         j += 1
                         continue
-                    if len(subltmp) == 6 or len(subltmp) == 7:
+
+                    ltmp = subline.split()
+                    if len(ltmp) == 6 or len(ltmp) == 7:
                         atomtypendx.append(j)
                     else:
-                        self.log['nice'] = False
-                        self.log['info'] = 'Error: wrong top file input\n' + \
-                                           'Error: wrong entry,\n' + \
-                                           subline
-                        return 0
+                        print(line)
+                        raise ValueError('wrong top file')
 
                     j += 1
                 i = j
@@ -290,169 +287,153 @@ class File_gen_gromacstop(object):
             elif line == '[moleculetype]':
                 j = i + 1
                 while True:
-                    if self.protopfile[j].find('[') != -1 or j >= len(self.protopfile):
+                    if j>=len(self.topfile) or self.topfile[j].find('[') != -1:
                         break
-                    subline = self.protopfile[j]
-                    subltmp = self.procomments(subline).split()
 
-                    if len(subltmp) == 0 or (len(subltmp) > 0 and subltmp[0][0] in ['#',';']):
+                    line = self.topfile[j]
+                    subline = self.procomments(line).strip()
+                    if len(subline) == 0 or subline[0] in ['#',';']:
                         j += 1
                         continue
-                    if len(subltmp) == 2:
-                        molndx.append(subltmp[0])
+
+                    ltmp = subline.split()
+                    if len(ltmp) == 2:
+                        molndx.append(j)
                     else:
-                        self.log['nice'] = False
-                        self.log['info'] = 'Error: wrong top file input\n' + \
-                                           'Error: wrong entry,\n' + \
-                                           subline
-                        return 0
+                        print(line)
+                        raise ValueError('wrong top file')
 
                     j += 1
                 i = j
-
             elif line == '[atoms]':
                 ls = []
                 j = i + 1
                 while True:
-                    if self.protopfile[j].find('[') != -1 or j >= len(self.protopfile):
+                    if j>=len(self.topfile) or self.topfile[j].find('[') != -1:
                         break
-                    subline = self.protopfile[j]
-                    subltmp = self.procomments(subline).split()
 
-                    if len(subltmp) == 0 or (len(subltmp) > 0 and subltmp[0][0] in ['#',';']):
+                    line = self.topfile[j]
+                    subline = self.procomments(line).strip()
+                    if len(subline) == 0 or subline[0] in ['#',';']:
                         j += 1
                         continue
-                    if len(subltmp) < 6 and len(subltmp) > 8:
-                        self.log['nice'] = False
-                        self.log['info'] = 'Error: wrong top file input\n' + \
-                                           'Error: wrong entry,\n' + \
-                                           subline
-                        return 0
-                    else:
-                        ls.append(j)
 
+                    ltmp = subline.split()
+                    if len(ltmp) < 6 or len(ltmp) > 8:
+                        print(line)
+                        raise ValueError('wrong top file')
+                    ls.append(j)
                     j += 1
-
                 if len(ls) > 0:
                     atomndx.append(ls)
                 i = j
-
             elif line == '[molecules]':
                 j = i + 1
                 while True:
-                    if j >= len(self.protopfile) or self.protopfile[j].find('[') != -1:
+                    if j>=len(self.topfile) or self.topfile[j].find('[') != -1:
                         break
-                    subline = self.protopfile[j]
-                    subltmp = self.procomments(subline).split()
 
-                    if len(subltmp) == 0 or (len(subltmp) > 0 and subltmp[0][0] in ['#',';']):
+                    line = self.topfile[j]
+                    subline = self.procomments(line).strip()
+                    if len(subline) == 0 or subline[0] in ['#',';']:
                         j += 1
                         continue
-                    if len(subltmp) == 2:
-                        syslist.append(subltmp[0])
+
+                    ltmp = subline.split()
+                    if len(ltmp) == 2:
+                        syslist.append(ltmp[0])
                     else:
-                        self.log['nice'] = False
-                        self.log['info'] = 'Error: wrong top file input\n' + \
-                                           'Error: wrong entry,\n' + \
-                                           subline
-                        return 0
+                        print(line)
+                        raise ValueError('wrong top file')
                     j += 1
                 i = j
-
             else:
                 i += 1
 
         if len(syslist) == 0 and len(molndx) == 0:
-            self.log['nice'] = False
-            self.log['info'] = 'Error: topfile format is wrong, no [moleculetype] nor [molecules] entry is found!'
-            return 0
-
+            print('no [moleculetype] nor [molecules] entry is found!')
+            raise ValueError('wrong top file')
+        if len(syslist) == 0: syslist = molndx
 
         # adjust the directives' sequence
         proatomndx = []
-        if len(syslist) == 0: syslist = molndx
         for res in syslist:
-            bool_ndx = True
-            print('For top file, processing residue < {:s} > ... '.format(res))
+            bo = True
+            print('For top file, processing residue < {:} > ... '.format(res))
             for cmp in atomndx:
-                line = self.protopfile[cmp[0]]
+                line = self.topfile[cmp[0]]
                 if res == line.split()[3]:
-                    bool_ndx = False
+                    bo = False
                     proatomndx.append(cmp)
                     break
-            if bool_ndx:
-                self.log['nice'] = False
-                self.log['info'] = 'Error: topfile format is wrong\n' + \
-                                   '     : for residue' + res + 'the corresponded [atoms] directive is not found'
-                return 0
+            if bo:
+                print('for residue ' + res + ', its [atoms] is not found')
+                raise ValueError('wrong top file')
 
         # select the residue based on given parameter, self.reschoose
         # self.atomtypendx, self.atomndx
         self.atomtypendx = atomtypendx
         if self.reschoose.upper() != 'ALL':
-
             count = 0
             self.atomndx = []
             for choose in syslist:
                 if choose.upper() == self.reschoose.upper():
-                    print('\nFor top file, choosing residue < {:s} >\n'.format(self.reschoose))
+                    print('Choosing residue < {:s} >\n'.format(self.reschoose))
                     self.atomndx = proatomndx[count]
                     break
                 count += 1
 
             if len(self.atomndx) == 0:
-                self.log['nice'] = False
-                self.log['info'] = 'Error: wrong reschoose parameter\n' + \
-                                   'Error: no residue was chosen\n' + \
-                                   'Error: the available residues are;' + syslist
-                return 0
+                print('available residues are: ', syslist)
+                raise ValueError('no residue was chosen')
         else:
-            print('\nFor top file, choosing all residue\n')
+            print('Choosing all residue\n')
             self.atomndx = [i for j in proatomndx for i in j]
-
-        return 1
 
 
 
     def run(self):
-        """combine the charge file and top file, the defined_class parameter, self.outfile"""
+        """combine the charge file and top file
 
+        Attributes:
+            self.outfile
+        """
         # take care of self.symmetry_list
         refatomtype = []
         for i in self.symmetry_list:
             if isinstance(i,int):
-                line = self.protopfile[self.atomndx[i-1]]
+                line = self.topfile[self.atomndx[i-1]]
                 refatomtype.append(line.split()[1])
             else:
-                line_1 = self.protopfile[self.atomndx[i[0]-1]]
+                line_1 = self.topfile[self.atomndx[i[0]-1]]
                 atype = line_1.split()[1]
                 if len(i) > 1:
                     for j in i[1:]:
-                        line = self.protopfile[self.atomndx[j-1]]
+                        line = self.topfile[self.atomndx[j-1]]
                         if atype != line.split()[1]:
-                            self.log['nice'] = False
-                            self.log['info'] = 'Error: the atom_types under [atoms] directive in top file is not equivalent\n' + \
-                                               'Error: symmetry_list:\n' + line_1[:-1] + '\n' + line[:-1]
-                            return 0
+                            print('symmetry_list:')
+                            print(line_1[:-1])
+                            print(line[:-1])
+                            raise ValueError('not equivalent!')
                 refatomtype.append(atype)
 
         totatomtype = []
         for i in self.atomtypendx:
-            ltmp = self.protopfile[i].split()
+            ltmp = self.topfile[i].split()
             totatomtype.append(ltmp[0])
 
         atomlist = []
         for i in self.atomndx:
-            ltmp = self.protopfile[i].split()
+            ltmp = self.topfile[i].split()
             atomlist.append(ltmp[1])
 
         self.outfile = []
         for charge in self.prochargefile[:self.gennm]:
 
             # ATTENTION! Here is very important !!!
-            # make a copy of self.protopfile, avoide the same memory address
-            # This copy has the same effect like the DEEP copy due to its DATA TYPE
-            topfile = self.protopfile[:]
+            # make a copy of self.topfile, avoide the same memory address
+            # This copy has the same effect like the DEEP copy
+            topfile = self.topfile[:]
 
             count = 0
             for pair in charge:
@@ -460,10 +441,8 @@ class File_gen_gromacstop(object):
                 try:
                     ndx = totatomtype.index(atype)
                 except:
-                    self.log['nice'] = False
-                    self.log['info'] = 'Error: the atom_type in [atoms] is not defined in [atomtypes]\n' + \
-                                       'Error:' + str(i)
-                    return 0
+                    print(atype)
+                    raise ValueError('not defined')
                 nm = self.atomtypendx[ndx]
                 line = topfile[nm]
                 ltmp = self.procomments(line).split()
@@ -498,11 +477,10 @@ class File_gen_gromacstop(object):
 
             self.outfile.append(topfile)
 
-        return 1
 
 
     def file_print(self):
-
+        """write files"""
         bo = False
         if len(self.outfile) == 0:
             print('Warning: no file is going to output')
@@ -513,8 +491,10 @@ class File_gen_gromacstop(object):
             for i in self.atomndx:
                 print(self.outfile[0][i],end='')
 
-            print('\nDo you want to continue? ( {:} topfiles will be generated ). y/yes, else quit'.format(self.gennm))
-            print('This will generate \'top\' files >',end='    ')
+            line = "This will generate 'top' files, "
+            line += '({:} topfiles will be generated)\n'.format(self.gennm)
+            line += 'Do you want to continue? y/yes, else quit'
+            print(line, end='    ')
             get_input = input()
             if get_input.upper() != 'Y' and get_input.upper != 'YES':
                 print('\nWarning: you have decided to quit ...')
@@ -535,8 +515,9 @@ class File_gen_gromacstop(object):
             fnamelist = self.fname + '_NameList'
             fnamelist = file_gen_new(fnamelist,fextend='txt',foriginal=False)
 
+            print('Note: please check file: < {:} >'.format(fnamelist))
             with open(fnamelist,mode='wt') as f:
-                f.write('# This is a collection of all the generated GROMACS topfile names \n')
+                f.write('# The collection of all GROMACS topfile names \n')
                 f.write('# The topfile used is:\n')
                 f.write('#    {:s}\n'.format(self.toppath))
                 f.write('# The charge_file used is:\n')
@@ -546,5 +527,6 @@ class File_gen_gromacstop(object):
                 for i in topnamelist:
                     f.write(i)
                     f.write('\n')
+
 
 

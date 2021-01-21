@@ -8,7 +8,7 @@ import GAML
 
 def read(*names):
     values = {}
-    extensions = ['.txt', '.rst','.md']
+    extensions = ['', '.txt', '.rst', '.md',]
     for name in names:
         v = ''
         for ext in extensions:
@@ -26,7 +26,9 @@ long_description = """%(README)s""" % read('README')
 setup(
     name='GAML',
     version=GAML.__version__,
-    description='Computation Chemistry Genetic Algorithm Machine Learning',
+    description='Genetic Algorithm Machine Learning',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Environment :: Console",
@@ -44,7 +46,7 @@ setup(
     url='https://github.com/orlandoacevedo/GAML',
     license='MIT',
     packages=['GAML'],
-    package_data={'GAML':['shell/GAML-BASH-Interface.sh'],},
+    package_data={'GAML':['scripts/*'],},
     entry_points={
         'console_scripts': [
             'gaml = GAML.main:cmd_line_runner',

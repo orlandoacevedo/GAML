@@ -2,20 +2,14 @@ from GAML.functions import file_size_check, file_gen_new, func_file_input
 from GAML.function_gen_range import func_gen_range
 import matplotlib.pyplot as plt
 
+
 class FSS_analysis(object):
-
     def __init__(self,**kwargs):
-        self.log = {'nice':True,'info':''}
-
         if 'file_path' in kwargs and kwargs['file_path'] is not None:
-            self.filepath = kwargs['file_path']
-            self.log = file_size_check(self.filepath,fsize=200)
-            if not self.log['nice']: return
+            self.filepath = kwargs['file_path'].strip()
+            file_size_check(self.filepath,fsize=200)
         else:
-            self.log['nice'] = False
-            self.log['info'] = 'Error: no file inputs'
-            return
-
+            raise ValueError('no inputs')
 
         if 'stepsize' in kwargs and kwargs['stepsize'] is not None:
             try:
@@ -23,12 +17,10 @@ class FSS_analysis(object):
                 if self.stepsize <= 0:
                     raise ValueError
             except ValueError:
-                self.log['nice'] = False
-                self.log['info'] = 'Error: the parameter stepsize has to be a positive number'
-                return
+                print('stepsize has to be a positive number')
+                raise ValueError('wrong defined')
         else:
             self.stepsize = 0.01
-
 
         if 'percent' in kwargs and kwargs['percent'] is not None:
             try:
@@ -36,35 +28,30 @@ class FSS_analysis(object):
                 if self.percent <= 0 or self.percent > 1:
                     raise ValueError
             except ValueError:
-                self.log['nice'] = False
-                self.log['info'] = 'Error: the parameter percent has to be a positive number within the range 0 to 1'
-                return
+                print('percent has to be a number within the range 0 to 1')
+                raise ValueError('wrong defined')
         else:
             self.percent = 0.95
-
 
         if 'error_tolerance' in kwargs and kwargs['error_tolerance'] is not None:
             try:
                 self.error_tolerance = float(kwargs['error_tolerance'])
             except ValueError:
-                self.log['nice'] = False
-                self.log['info'] = 'Error: the parameter error_tolerance has to be a number'
-                return
+                print('error_tolerance has to be a number')
+                raise ValueError('wrong defined')
         else:
             self.error_tolerance = 0.28
-
 
         if 'bool_abscomp' in kwargs:
             self.bool_abscomp = False if kwargs['bool_abscomp'] is False else True
         else:
             self.bool_abscomp = True
 
-
         if 'cut_keyword' in kwargs and kwargs['cut_keyword'] is not None:
-            self.cut_keyword = kwargs['cut_keyword']
+            self.cut_keyword = kwargs['cut_keyword'].strip()
+            if len(self.cut_keyword) == 0: self.cut_keyword = 'MAE'
         else:
             self.cut_keyword = 'MAE'
-
 
         if 'pallette_nm' in kwargs and kwargs['pallette_nm'] is not None:
             try:
@@ -72,12 +59,10 @@ class FSS_analysis(object):
                 if self.pallette_nm <= 0:
                     raise ValueError
             except ValueError:
-                self.log['nice'] = False
-                self.log['info'] = 'Error: the parameter pallette_nm has to be a positive integer'
-                return
+                print('pallette_nm has to be a positive integer')
+                raise ValueError('wrong defined')
         else:
             self.pallette_nm = 50
-
 
         if 'atomtype_list' in kwargs and kwargs['atomtype_list'] is not None:
             if isinstance(kwargs['atomtype_list'],list):
@@ -86,18 +71,16 @@ class FSS_analysis(object):
                 else:
                     self.atomtype_list = kwargs['atomtype_list']
             else:
-                self.log['nice'] = False
-                self.log['info'] = 'Error: the parameter atomtype_list has to be a list'
-                return
+                print('atomtype_list has to be a list')
+                raise ValueError('wrong defined')
         else:
             self.atomtype_list = None
 
-
         if 'fname' in kwargs and kwargs['fname'] is not None:
-            self.fname = kwargs['fname']
+            self.fname = kwargs['fname'].strip()
+            if len(self.fname) == 0: self.fname = 'FSS_analysis'
         else:
             self.fname = 'FSS_analysis'
-
 
         if 'color_map' in kwargs and kwargs['color_map'] is not None:
             self.color_map = kwargs['color_map']
@@ -107,53 +90,45 @@ class FSS_analysis(object):
 
 
     def func_fss(self):
-
-        self.log,chargehvap = func_file_input(self.filepath,bool_tail=True,cut_keyword=self.cut_keyword,
-                                              bool_force_cut_kw=True)
-        if not self.log['nice']: return [],[],[]
+        """Feature Statistic Selection"""
+        chargehvap = func_file_input(self.filepath,bool_tail=True,
+                                     cut_keyword=self.cut_keyword,
+                                     bool_force_cut_kw=True)
 
         # filter the list using the error_tolerance
         prolist = []
-        i = 0
-        while i < len(chargehvap):
+        for i in range(len(chargehvap)):
             if self.bool_abscomp:
                 if abs(chargehvap[i][-1]) <= self.error_tolerance:
                     prolist.append(chargehvap[i])
             else:
                 if chargehvap[i][-1] <= self.error_tolerance:
                     prolist.append(chargehvap[i])
-            i += 1
+
 
         if len(prolist) == 0:
-            self.log['nice'] = False
-            self.log['info'] = 'Error: the error_tolerance is so small that getting rid of all the data\n' + \
-                               'Error: please increase this number and try again'
-            return [],[],[]
+            print('error_tolerance is too small, all the data is filtered out')
+            print('please increase this number and try again')
+            raise ValueError('wrong inputs')
         elif len(prolist) < 50:
-            self.log['nice'] = False
-            self.log['info'] = 'Error: the total number of chosen pairs should be no less than 50\n' + \
-                               'Error: please increase the error_tolerance and try again'
-            return [],[],[]
+            print('Total number of chosen pairs should be no less than 50')
+            print('please increase the error_tolerance and try again')
+            raise ValueError('too less')
         else:
-            if self.atomtype_list is not None and len(prolist[0]) - 1 != len(self.atomtype_list):
-                self.log['nice'] = False
-                self.log['info'] = 'Error: the input file and atomtype_list are not corresponded\n' + \
-                                   '{:}\n{:}'.format(self.atomtype_list,prolist[0])
-                return [],[],[]
+            if self.atomtype_list is not None:
+                for i in prolist:
+                    if len(i) - 1 != len(self.atomtype_list):
+                        print(i,'\n',self.atomtype_list)
+                        print('input file and atomtype_list')
+                        raise ValueError('not correspond')
 
 
         valuelist = []
-        i = 0
         lth = len(prolist[0]) - 1
-        while i < lth:
-
-            ls = []
-            for perid in prolist:
-                ls.append(perid[i])
-
+        for i in range(lth):
+            ls = [per[i] for per in prolist]
             chmin = rmin = min(ls)
             rmax = max(ls)
-
             lp = []
             while rmin <= rmax:
                 count = 0
@@ -163,64 +138,51 @@ class FSS_analysis(object):
                 lp.append(count)
                 rmin += self.stepsize
 
-            self.log,atmp,btmp = func_gen_range(lp,percent=self.percent)
-            if not self.log['nice']: return [],[],[]
-
-            lt = []
-            lt.append( round(chmin + self.stepsize * atmp,5) )
-            lt.append( round(chmin + self.stepsize * btmp,5) )
-            valuelist.append(lt)
-
-            i += 1
+            a, b = func_gen_range(lp,percent=self.percent)
+            v1 = round(chmin + self.stepsize * a, 5)
+            v2 = round(chmin + self.stepsize * b, 5)
+            valuelist.append([v1,v2])
 
 
-        # process the prolist again to filfull the percent_setting
+        # process the prolist again to fulfill the percent setting
         newlist = []
         for chargepair in prolist:
-            data_bool = True
-            i = 0
-            for per in chargepair[:-1]:
+            bo = True
+            for i, per in enumerate(chargepair[:-1]):
                 if per >= valuelist[i][1] or per < valuelist[i][0]:
-                    data_bool = False
+                    bo = False
                     break
-                i += 1
-            if data_bool:
+            if bo:
                 newlist.append(chargepair)
 
 
         if len(newlist) <= 50:
-            self.log['nice'] = False
-            self.log['info'] = 'Error: the percent parameter is not big enough to maintain the data sets\n' + \
-                               'Error: please add more file contents or increase the error_tolerance\n' + \
-                               'Error: the total number of chosen pairs should be no less than 50'
-            return [],[],[]
-
+            info = 'percent is too small to maintain the data sets\n'
+            info += 'please add more data entries or increase error_tolerance\n'
+            info += 'total number of chosen pairs should be no less than 50'
+            print(info)
+            raise ValueError('not enough')
 
         # prompt the information
-        self.select_pairnm = len(newlist)
-        print('\nThe selected charge_pair_number is:    ',self.select_pairnm)
+        self.pnm = len(newlist)
+        print('\nThe selected number of charge pair is:    ',self.pnm)
         print('Do you want to continue? y/yes, else quit:    ',end='')
-        get_input = input()
-        if get_input.upper() != 'Y' and get_input.upper() != 'YES':
-            self.log['nice'] = False
-            self.log['info'] = 'Warning: you have decided to quit ...\n' + \
-                               'Warning: nothing is generated\n'
-            return [],[],[]
+        tmp = input()
+        if tmp.upper() != 'Y' and tmp.upper() != 'YES':
+            info = 'Warning: you have decided to quit ...\n'
+            info += 'Warning: nothing is generated'
+            print(info)
+            raise RuntimeError('user decided quit')
         else:
             print('\nProcessing ...\n')
 
 
-        i = 0
         stderrlist = []
         plotlist = []
         valuerangelist = []
         lth = len(newlist[0]) - 1
-        while i < lth:
-
-            ls = []
-            for per in newlist:
-                ls.append(per[i])
-
+        for i in range(lth):
+            ls = [per[i] for per in newlist]
             rmin = min(ls)
             rmax = max(ls)
             step = (rmax - rmin) / self.pallette_nm
@@ -241,25 +203,17 @@ class FSS_analysis(object):
                 lp[-1] += t
 
             # note, the plotlist is not normalized
-
             plotlist.append(lp)
-
 
             aver = sum(ls) / len(ls)
             delta = max(ls) - min(ls)
-
             if delta == 0:
                 stderrlist.append(0)
             else:
                 total = 0
-                for perdata in ls:
-                    total += (perdata - aver) ** 2
+                for perdata in ls: total += (perdata - aver) ** 2
                 total = total / delta / delta
-
                 stderrlist.append(total)
-
-            i += 1
-
 
         return stderrlist,plotlist,valuerangelist
 
@@ -268,34 +222,23 @@ class FSS_analysis(object):
     def run(self):
 
         stderrlist,plotlist,self.valuerangelist = self.func_fss()
-        if not self.log['nice']: return
-
         if self.atomtype_list is None:
             self.atomtype_list = [ str(i+1) for i in range(len(plotlist)) ]
 
-
-        # normaliz the plotlist at the range [0,1]
+        # normaliz plotlist to range [0,1]
         self.prolist = []
         for i in plotlist:
             rmax = max(i)
-            ls = []
-            for j in i:
-                ls.append(j/rmax)
+            ls = [j/rmax for j in i]
             self.prolist.append(ls)
 
-
         # prepare the y_ticks for the plot
-
         self.yticklist = []
-        count = 0
-        for i in self.valuerangelist:
+        for cnt, i in enumerate(self.valuerangelist):
             tmp = '  {:>6.3f} ~ {:>6.3f}'.format(i[0],i[1])
-            self.yticklist.append(self.atomtype_list[count] + tmp)
-            count += 1
+            self.yticklist.append(self.atomtype_list[cnt] + tmp)
 
-
-        # prepare for the fss
-
+        # prepare for fss
         self.ndxlist = []
         reflist = list(range(len(stderrlist)))
         while len(reflist) > 0:
@@ -306,66 +249,55 @@ class FSS_analysis(object):
             reflist.remove(reflist[ndx])
             stderrlist.remove(errormax)
 
-
         # prepare the self.profile for print
         # note, here use the original plotlist
-
         self.profile = []
         line = ''
         for i in self.atomtype_list:
-            line += ' {:>6} '.format(i)
-        line = '#' + line[1:] + '\n\n'
+            line += ' {:>6}'.format(i)
+        line = '#' + line[1:]
         self.profile.append(line)
 
-        i = 0
-        while i < self.pallette_nm:
+        for i in range(self.pallette_nm):
             line = ''
-            for j in plotlist:
-                line +=  ' {:>6} '.format(j[i])
+            for j in plotlist: line +=  ' {:>6}'.format(j[i])
             self.profile.append(line)
-            i += 1
 
 
 
     def file_print(self):
-
+        """write to file"""
         self.figure_plot()
 
         pfname = file_gen_new(self.fname,fextend='txt',foriginal=False)
-
+        print('Note: new file < {:} >'.format(pfname))
         with open(pfname,mode='wt') as f:
-            f.write('# This is the final calculation result, which is not normalized \n\n')
-            f.write('# The corresponded parameters are: \n\n')
-            f.write('# The input file used is: \n')
-            f.write('#     {:s} \n\n'.format(self.filepath))
+            f.write('# Final calculation result (not normalized)\n\n')
+            f.write('# input file: < {:} >\n'.format(self.filepath))
 
-            f.write('# The error_tolerance is: < {} > \n'.format(self.error_tolerance))
-            f.write('# The percent_range is: < {} > \n'.format(self.percent))
-            f.write('# The stepsize is: < {} > \n'.format(self.stepsize))
-            f.write('# The plot pallette_number is: < {} > \n\n\n'.format(self.pallette_nm))
+            f.write('# error_tolerance: < {:} >\n'.format(self.error_tolerance))
+            f.write('# percent_range: < {:} >\n'.format(self.percent))
+            f.write('# stepsize: < {:} >\n'.format(self.stepsize))
+            f.write('# pallette_number: < {:} >\n\n\n'.format(self.pallette_nm))
 
-            f.write('# Note: each column is corresponded to its own data_range \n')
-            f.write('#       and those data_ranges are the final optimal charge_range \n\n')
-            f.write('# For each different atomtype, the charge_range is: \n')
+            f.write('# Column corresponds to its own data range (optimized)\n')
+            f.write('# For each different atomtype, charge range is:\n')
 
-
-            i = 0
-            for j in self.valuerangelist:
-                f.write('#    {}'.format(self.atomtype_list[i]))
-                f.write('    {:>8.3f}  {:>8.3f} \n'.format(j[0],j[1]))
-                i += 1
+            for i, j in enumerate(self.valuerangelist):
+                f.write('#    {:}'.format(self.atomtype_list[i]))
+                f.write('    {:>8.3f}  {:>8.3f}\n'.format(j[0],j[1]))
 
             f.write('\n\n')
-            f.write('# From the Feature Statistical Standard Error Selection,\n')
-            f.write('# the most influenced atomtype sequence is: \n')
-            f.write('# ')
+            f.write('# Feature Statistical Standard Error Selection\n')
+            f.write('# the most influenced atomtype sequence is:\n')
+            f.write('#')
             for i in self.ndxlist:
-                f.write('  {}  '.format(self.atomtype_list[i]))
+                f.write('  {:}  '.format(self.atomtype_list[i]))
             f.write('\n\n\n')
 
 
-            f.write('# In total, the selected_charge_pair_number is: < {} > \n'.format(self.select_pairnm))
-            f.write('# the dataset is:\n\n')
+            f.write('# Number of selection is: < {:} >\n'.format(self.pnm))
+            f.write('# Dataset is:\n')
             for line in self.profile:
                 f.write(line)
                 f.write('\n')
@@ -373,7 +305,7 @@ class FSS_analysis(object):
 
 
     def figure_plot(self):
-
+        """matplotlib"""
         cmap = plt.get_cmap(self.color_map)
         fig = plt.figure(facecolor='w',figsize=(10,6))
 
@@ -391,5 +323,7 @@ class FSS_analysis(object):
         pfname = pfname[:pfname.rfind('.png')]
         plt.tight_layout()
         fig.savefig(pfname)
+        print('Note: Figure name < {:}.png >'.format(pfname))
+
 
 

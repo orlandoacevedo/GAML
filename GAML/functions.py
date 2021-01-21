@@ -1,33 +1,29 @@
 import os
 
+
 def file_size_check(path,fsize=10):
-    """This function is used to check the file existence and size,
-       the unit of size is in megabety"""
-
-    log = {'nice':True,'info':''}
-    try:
-        sizetmp = os.stat(path).st_size
-        if sizetmp/1024/1024 > fsize:
-            log['nice'] = False
-            log['info'] = 'Error: the file size is far larger than %f MB' % fsize,
-
-    except IOError:
-        log['nice'] = False
-        log['info'] = 'Error : cannot open the file!\n' + \
-                      'Error : ' + path
-
-    return log
+    """check file existence & size"""
+    if not os.path.isfile(path):
+        print(path)
+        raise FileNotFoundError('File not found')
+    sizetmp = os.stat(path).st_size
+    if sizetmp/1024/1024 > fsize:
+        raise ValueError('File size is too big, try to increase its limits')
 
 
 
 def file_gen_new(fname,fextend='txt',foriginal=True,bool_dot=True):
-    """This function is used to make new file but without overriding the
-       old one. By default, the "string" after the dot-notation in the
-       input file name is used as the final file extension, which means
-       it will override the parameter in 'fextend', this behavior can be
-       turned off by set 'bool_dot' to False. The parameter 'foriginal'
-       is used to set filename be counted or not"""
+    """Generate new file name without overwritings
 
+    Args:
+        fname   (str)   :   input file fname
+        fextend (str)   :   file extension
+        foriginal (bool):   whether keep original
+        bool_dot (bool) :   force check dot convention or not
+    
+    Returns:
+        str     :   new file name
+    """
     filename = fname
     pos = filename.rfind('.')
     if bool_dot and pos != -1:
@@ -46,66 +42,77 @@ def file_gen_new(fname,fextend='txt',foriginal=True,bool_dot=True):
     i = 1
     filename = fname
     while True:
-        fname = filename + '_' + str(i) + fextend
-        try:
-            f = open(fname)
-            f.close()
-        except:
-            break
+        fname = filename + '-' + str(i) + fextend
+        if not os.path.isfile(fname): break
         i += 1
     return fname
 
 
 
-def func_file_input(filepath,comment_char='#',dtype=float,bool_tail=True,in_keyword='PAIR',
-                    cut_keyword='MAE',bool_force_cut_kw=False,ignore_kw='HEAD'):
-    """get the input file, check whether forcing the cut_kw or not"""
+def func_file_input(filepath,
+                    comment_char='#',
+                    dtype=float,
+                    bool_tail=True,
+                    in_keyword='PAIR',
+                    cut_keyword='MAE',
+                    bool_force_cut_kw=False,
+                    ignore_kw='HEAD'):
+    """Read input file
+    
+    Args:
+        filepath    (str)   :   file path
+        comment_char (str)  :   char used as comments when reading
+        dtype       (type)  :   convert data type
+        bool_tail   (bool)  :   whether append tail or not
+        in_keyword (str)    :   read leading words
+        cut_keyword (str)   :   read triming words
+        bool_force_cut_kw(bool) :   whether force trim words exist
+        ignore_kw   (str)   :   ignore keyword when reading
 
+    Returns:
+        List[List]  :   reading data
+    """
     profile = []
-    log = {'nice':True,}
     with open(filepath,mode='rt') as f:
         while True:
             line = f.readline()
             if len(line) == 0:
                 break
-            else:
-                bo = False
-                lp = line[:line.find(comment_char)].split()
-                if len(lp) == 0:
-                    continue
-                elif len(lp) >= 2 and lp[0] == in_keyword:
-                    if bool_force_cut_kw and line.find(cut_keyword) == -1:
-                        log['nice'] = False
-                        log['info'] = 'Error: no cut_keyword was found\n' + \
-                                      'Error line: ' + line
-                        break
-                    ls = []
-                    try:
-                        for tmp in lp[1:]:
-                            if tmp != cut_keyword:
-                                ls.append(dtype(tmp))
-                            else:
-                                if bool_tail is True:
-                                    t = lp.index(tmp) + 1
-                                    if len(lp) <= t:
-                                        ls.append('nan')
-                                    else:
-                                        ls.append(dtype(lp[lp.index(tmp)+1]))
-                                break
-                        profile.append(ls)
-                    except ValueError:
-                        bo = True
-                elif len(lp) >= 2 and lp[0] == ignore_kw:
-                    pass
-                else:
-                    bo = True
-                if bo:
-                    log['nice'] = False
-                    log['info'] = 'Error: The input file format is not correctly defined\n' + \
-                                  'Error line: ' + line
-                    break
 
-    return log,profile
+            line = line.strip()
+            if len(line) == 0 or line[0] == comment_char:
+                continue
+            
+            bo = False
+            lp = line.split()
+            if len(lp) >= 2 and lp[0] == in_keyword:
+                if bool_force_cut_kw and line.find(cut_keyword) == -1:
+                    print('Error: in line: ' + line)
+                    raise KeyError('cut_keyword is not found')
+                ls = []
+                try:
+                    for tmp in lp[1:]:
+                        if tmp != cut_keyword:
+                            ls.append(dtype(tmp))
+                        else:
+                            if bool_tail is True:
+                                t = lp.index(tmp) + 1
+                                if len(lp) <= t:
+                                    ls.append('nan')
+                                else:
+                                    ls.append(dtype(lp[lp.index(tmp)+1]))
+                            break
+                    profile.append(ls)
+                except ValueError:
+                    print('Error: in line: ' + line)
+                    raise ValueError('cannot convert')
+            elif len(lp) >= 2 and lp[0] == ignore_kw:
+                pass
+            else:
+                print('Error: in line: ' + line)
+                raise ValueError('Not correctly defined')
+
+    return profile
 
 
 
@@ -160,32 +167,30 @@ def func_roundoff_error(v,vnm,s,snm,n=10,nmround=2):
 
 
 def func_pro_pn_limit(string,bool_repeats=True):
-    """This method is used to process the parameter pn_limit, the raw input is
-       a string, its correct formats are;
+    """process pn_limit
+    
+    Raw input should be a string
 
-       1) '1,p, 2, p, 3:P, 4 - Positive, 5 :N, 6- negative, 7,  8, 9   n'
-       2) '1p, 2  3, p  4,  - , p, 5 ,6n, 7  8 ,, 9 n'
-       3) '1,2,3,4p,  5,6,7,8,9n'
-       4) '1-p, 2:p, 3-p, 4p, 5n, 6n, 7-n, 8n, 9n'
-       5) '1:p, 2-p, 3p, 4p, 5:n, 6n, 7n, 8-n, 9n'
-       6) '1p, 2p, 3p, 4p, 5n, 6n, 7n, 8n, 9n'
+    1) '1,p, 2, p, 3:P, 4 - Positive, 5 :N, 6- negative, 7, 8, 9  n'
+    2) '1p, 2  3, p  4,  - , p, 5 ,6n, 7  8 ,, 9 n'
+    3) '1,2,3,4p,  5,6,7,8,9n'
+    4) '1-p, 2:p, 3-p, 4p, 5n, 6n, 7-n, 8n, 9n'
+    5) '1:p, 2-p, 3p, 4p, 5:n, 6n, 7n, 8-n, 9n'
+    6) '1p, 2p, 3p, 4p, 5n, 6n, 7n, 8n, 9n'
 
-       The number of space or tab doesn't matter.
-       All of those six inputs are equivalent.
+    The number of space or tab doesn't matter.
+    All of those six inputs are equivalent.
 
-       The comma is chosen as the delimiter, the key word 'p' and 'n' represent
-       'positive' and 'negative' respectively, both its initial and full word
-       are OK, they are case-insensitive.
+    The comma is chosen as the delimiter, the key word 'p' and 'n'
+    represent 'positive' and 'negative' respectively, both its
+    initial and full word are OK, they are case-insensitive.
 
-       the bool_repeats are used to define the double-definition can be accepted
-       or not for the same entry.
+    the bool_repeats are used to define the double-definition
+    can be accepted or not for the same entry.
 
-       Note:
-           the return value is not sequence based"""
-
-    log = {'info':'Error: the parameter pn_limit is not correctly defined',
-           'nice':True, }
-
+    Note:
+        the return value is not sequence based
+    """
     line = string.replace(',',' ').replace(':',' ').replace('-',' ').lower()
     line = line.replace('ositive',' ').replace('egative',' ')
 
@@ -200,8 +205,8 @@ def func_pro_pn_limit(string,bool_repeats=True):
            (subline[-1] != 'n' and subline[-1] != 'p'):
             raise ValueError
     except ValueError:
-        log['nice'] = False
-        return log, 0
+        print(string)
+        raise ValueError('Wrong defined')
 
     nl = pl = ''
     i = 0
@@ -225,61 +230,11 @@ def func_pro_pn_limit(string,bool_repeats=True):
 
     if not bool_repeats:
         t = [i[0] for i in nvlist]
-        if len(t) != len(set(t)): log['nice'] = False
+        if len(t) != len(set(t)):
+            print(string)
+            raise ValueError('Wrong defined')
 
-    return log, nvlist
-
-
-
-def assertion(dtype=None,data=None,small=None,big=None,
-              smallclose=False,bigclose=False):
-    """
-    This fuction is used for input parameter's validation
-    test, which is fulfilled by the 'try-except' method, but
-    with more powerful abilities.
-
-    For example, for the string '8', we want it to transfer
-    to be an int type with a range not less than number 8,
-    and no bigger that 18, thus we can set,
-
-    assertion(dtype=int,data='8',small=8,smallclose=True,
-              big=18,bigclose=True)
-
-    then any int value in range, 8 <= x <= 18, is valid.
+    return nvlist
 
 
-    Return Value:
-    a tuple, (assertResult, data)
-    """
 
-    bool_ref = True
-    if dtype is float or dtype is int:
-        try:
-            if dtype is int:
-                data = int(data)
-            else:
-                data = float(data)
-
-            bool_ref_small = False
-            if small is not None:
-                if smallclose:
-                    if data < small: bool_ref_small = True
-                else:
-                    if data <= small: bool_ref_small = True
-
-            bool_ref_big = False
-            if big is not None:
-                if bigclose:
-                    if data > big: bool_ref_big = True
-                else:
-                    if data >= big: bool_ref_big = True
-
-            if bool_ref_small or bool_ref_big:
-                raise ValueError
-
-        except ValueError:
-            bool_ref = False
-    else:
-        bool_ref = False
-
-    return bool_ref,data
