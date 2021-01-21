@@ -3,11 +3,9 @@
 
 Genetic Algorithm Machine Learning (GAML) software package for automated force field parameterization.
 
-[Orlando Acevedo](http://www.acevedoresearch.com), University of Miami
+Xiang Zhong and [Orlando Acevedo](http://www.acevedoresearch.com), University of Miami
 
-This machine learning-based software package automates the force field parameterization of solvents for molecular dynamics (MD) or Monte Carlo (MC) simulations. New OPLS-AA atomic charges and 12-6 Lennard-Jones terms are parameterized for any solvent using a genetic algorithm crossover/average/mutation method. GAML outputs GROMACS formatted files (with additional packages under development, e.g., LAMPPS and AMBER).The parameters are validated by default against user-supplied free energies of hydration (ΔGhyd), liquid densities, and heats of vaporization (ΔHvap).
-
-The user can to choose additional physical properties to optimize, e.g., heat capacity, viscosity, self-diffusivity, dipoles, and solubility. (However, this is still under development and not included in the current build here.)
+This machine learning based software package automates the creation of force field (FF) parameters for molecular dynamics (MD) or Monte Carlo (MC) simulations. In the current build, atomic charge development is emphasized for solvent simulations using a genetic algorithm crossover/average/mutation method. GAML outputs GROMACS formatted files in the OPLS-AA formalism for use in MD simulations. The FF parameters are validated by default against user-supplied free energies of hydration (ΔGhyd), liquid densities, and heats of vaporization (ΔHvap). However, additional condensed phased physical properties are available (or under development) for training that include: heat capacity, viscosity, self-diffusivity, dipoles, surface tension, and solubility.
 
 ## Requirements
 ------------
@@ -24,7 +22,7 @@ git clone git://github.com/orlandoacevedo/GAML.git
 ## Installation
 -----
 ```
-pip install GAML (still under development, so please install from the source codes)
+pip install GAML (still under development, so please install from the source code)
 ```
 or
 ```
@@ -163,7 +161,7 @@ gaml [command] -h
 
 ## Notes
 ----------
-The most recent version of the software is GAML v.04 and is still heavily under development. Lennard-Jones optimization has not been implemented in this GitHub version.
+The most recent version of the software is GAML v0.7 and is still under development.
 A test for a 1-butylpyridinium-based ionic liquid can be found under the ``sample/`` directory
 Some features worth mentioning:
 + Customized selection range for Coulombic interactions with PBC removal
@@ -173,7 +171,7 @@ Some features worth mentioning:
 
 ## References
 ----------
-Zhong, X.; Acevedo, O. "Genetic Algorithm Machine Learning (GAML) software package for automated force field parameterization of solvents." (in preparation for submission)
+Zhong, X.; Velez, C.; Acevedo, O. "Partial Charges Optimized by Genetic Algorithms for Deep Eutectic Solvent Simulations." (in preparation for submission)
 
 ## About
 -----
@@ -183,4 +181,4 @@ Zhong, X.; Acevedo, O. "Genetic Algorithm Machine Learning (GAML) software packa
 
 **Software License**:
 GAML. Genetic Algorithm Machine Learning (GAML) software package.
-Copyright (C) 2018  Orlando Acevedo
+Copyright (C) 2020  Orlando Acevedo
