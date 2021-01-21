@@ -1,7 +1,7 @@
-# This is the generated charge_range based on the input charge_file 
+# File charge ranges based on the input charge_file 
 # The charge file used is:
 #     BPYR_BF4_charge_collection.txt
-# Each line's charge_range is corresponded to each atom 
+# Line is corresponded to each atom 
 
 ATOM      1      0.1350      0.1650
 ATOM      2      0.2780      0.2980
