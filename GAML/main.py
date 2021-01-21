@@ -9,6 +9,7 @@ from GAML.fss_analysis import FSS_analysis
 from GAML.parsecmd import parsecmd
 from GAML.parsefile import parsefile
 from GAML.defaults import parlist
+from GAML.file_gen_scripts import File_gen_scripts
 
 import sys
 from sys import exit
@@ -38,6 +39,8 @@ def run(fdict):
         fp = FSS_analysis(**fdict)
     elif cmd == 'file_gen_mdpotential':
         fp = File_gen_mdpotential(**fdict)
+    elif cmd == 'file_gen_scripts':
+        fp = File_gen_scripts(**fdict)
     else:
         # Normally, this part will never be executed.
         # However, it is still defined

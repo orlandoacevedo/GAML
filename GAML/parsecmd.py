@@ -158,6 +158,13 @@ def parsecmd(args):
     sub_8.add_argument('-f','--file_path',help='Auto training parameters all-in-one file')
     sub_8.add_argument('--bashinterfile',help='Input Bash interface file')
 
+
+    sub_9 = subparser.add_parser('file_gen_scripts', help='Get training scripts')
+    sub_9.set_defaults(command='file_gen_scripts')
+    sub_9.add_argument('-n','--number',help='which script to choose, sequenced by -a')
+    sub_9.add_argument('-a','--available',help='show available scripts',action='store_true')
+
+
     args = parser.parse_args(args)
 
     if not vars(args):
