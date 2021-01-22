@@ -1,18 +1,18 @@
 """Parse command line input
 
-return:
-    log `dict`:
-        it contains two keys 'nice' & 'info'
-        `log['nice'] == False` means error happens
-        please check it use `log['info']`
+Returns:
+    log (dict):
+        nice    :   False means error happens
+        info    :   Error message
 
-    procmd `1D dict`:
+    procmd (dict):
         { key:value, key:value,  ...}
 """
 
 import sys
 import argparse
 from GAML.__init__ import __version__
+
 
 def parsecmd(args):
     """Parse command line input"""
@@ -158,6 +158,13 @@ def parsecmd(args):
     sub_8.add_argument('-f','--file_path',help='Auto training parameters all-in-one file')
     sub_8.add_argument('--bashinterfile',help='Input Bash interface file')
 
+
+    sub_9 = subparser.add_parser('file_gen_scripts', help='Get training scripts')
+    sub_9.set_defaults(command='file_gen_scripts')
+    sub_9.add_argument('-n','--number',help='which script to choose, sequenced by -a')
+    sub_9.add_argument('-a','--available',help='show available scripts',action='store_true')
+
+
     args = parser.parse_args(args)
 
     if not vars(args):
@@ -195,5 +202,6 @@ def parsecmd(args):
         procmd['atomtype_list'] = value
 
     return log, procmd
+
 
 

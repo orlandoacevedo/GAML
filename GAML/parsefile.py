@@ -4,19 +4,19 @@ Contents in `key=value` format.
 
 Any existing key without value defined will be set to None
 
-return:
-    log `dict`:
-        it contains two keys 'nice' & 'info'
-        `log['nice'] == False` means error happens
-        please check it use `log['info']`
+Returns:
+    log (dict):
+        nice    :   False means error happens
+        info    :   Error message
 
-    profile `list`:
+    profile (List):
         commands exist, return `3D list`:
             [ [[key,value,info],[key,value,info]], ...]
 
         otherwise, return empty 1D list
 """
 
+import os
 
 def parsefile(settingfile):
     """Parse the input settingfile"""
@@ -25,6 +25,10 @@ def parsefile(settingfile):
         if string.find('#') != -1:
             string = string[:string.find('#')]
         return string.strip()
+    
+    if not os.path.isfile(settingfile):
+        print('not a file: {:}'.format(settingfile))
+        raise FileNotFoundError('not a file')
 
     log = {'nice': True,'info':''}
     # this universal string is used to exit prompt
@@ -143,5 +147,6 @@ def parsefile(settingfile):
         return log, []
 
     return log, profile
+
 
 

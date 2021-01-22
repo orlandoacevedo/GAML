@@ -1,6 +1,6 @@
 command       = file_gen_gromacstop 
-toppath       = bpyr_bf4_normal.top
-charge_path   = BPYR_anion_Charge_Combine_1.txt
+toppath       = bpyr_bf4_scale08.top
+charge_path   = BPYR_anion_ChargePairs.txt
 symmetry_list = [[1,9],[2,10],[3, 7],[4,8],[13,14],[ 16,17,19,20],[22 ,23,24],[15,18],5,6,11,12,21]
 reschoose     = 
 fname         = GenGromacsTopfile

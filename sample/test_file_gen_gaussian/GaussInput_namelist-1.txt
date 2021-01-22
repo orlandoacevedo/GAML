@@ -1,0 +1,13 @@
+# Collection of generated file names
+
+# The topfile is:
+#    bpyr_bf4_scale08.top
+
+# The pdbfile is:
+#    BPYR_BF4_prod_10ns_trr.pdb
+
+# The select_range is < 10.0 > Angstrom
+# Reference format: [residue-index, molecule-index]
+
+1     : [2,247]  [1,1] 
+2     : [2,251]  [1,2] 

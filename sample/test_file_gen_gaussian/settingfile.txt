@@ -1,5 +1,5 @@
 command      = file_gen_gaussian
-toppath      = bpyr_bf4_scale08_gencom.top
+toppath      = bpyr_bf4_scale08.top
 file_path    = BPYR_BF4_prod_10ns_trr.pdb
 gennm        = 2          # default is 5
 select_range = 10         # default is 10

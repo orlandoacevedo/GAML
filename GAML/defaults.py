@@ -3,6 +3,7 @@
 If possible, parameters should be in lower case
 """
 
+
 defaults_charge_gen_range = {
     'command'       :   'charge_gen_range',
     'charge_path'   :   None,
@@ -126,6 +127,12 @@ defaults_GAML_autotrain = {
 }
 
 
+defaults_file_gen_scripts = {
+    'command'       :   'file_gen_scripts',
+    'number'        :   None,
+    'available'     :   None,
+}
+
 
 # note: register all defaults
 parlist = [
@@ -137,6 +144,7 @@ parlist = [
     defaults_GAML,
     defaults_GAML_autotrain,
     defaults_fss_analysis,
+    defaults_file_gen_scripts,
 ]
 
 

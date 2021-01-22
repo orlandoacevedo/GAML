@@ -1,31 +1,32 @@
 import random
 
+
 def func_gen_range(rlist,percent=0.8):
-    """
+    """filtering charge range
+
     For an integer 1D list, start from the mode number, find
     a surrounding range, which contains data points no less
     than certain percent
 
     For return value, the ndxmin is included in the range,
     while ndxmax is not
-    """
 
-    log = {'nice':True,'info':''}
+    Returns:
+        int     :   lower-bound
+        int     :   higher-bound
+    """
     try:
         if not isinstance(rlist,list):
-            raise TypeError
+            raise ValueError
         else:
             for i in rlist:
                 if not isinstance(i,int):
-                    raise TypeError
+                    raise ValueError
         percent = float(percent)
         if percent <= 0 or percent > 1:
             raise ValueError
-    except (ValueError, TypeError):
-        log['info'] = 'Error: the input list has to be an 1D integer list\n' + \
-                      'Error: the range of percent has to between 0 to 1\n'
-        log['nice'] = False
-        return log,0,0
+    except ValueError:
+        raise ValueError('rlist: 1D integer list; percent: between 0 & 1')
 
     lth = len(rlist)
     rmax = max(rlist)
@@ -92,6 +93,7 @@ def func_gen_range(rlist,percent=0.8):
         ndxmin = chooselist[choose][0]
         ndxmax = chooselist[choose][1]
 
-    return log,ndxmin,ndxmax
+    return ndxmin,ndxmax
+
 
 
