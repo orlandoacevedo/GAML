@@ -204,8 +204,10 @@ gaml
 ## Notes
 
 The most recent version of the software is `GAML 1.00`.
-A test for a 1-butylpyridinium-based ionic liquid can be found under the **sample/** directory
+A test for a 1-butylpyridinium-based ionic liquid can be found under the **sample/** directory.
+
 The OPLS-AA parameters for 86 conventional solvents optimized by GAML can be found under the **Solvents/** directory. Files formatted for GROMACS.
+
 Some features worth mentioning:
 + Customized selection range for Coulombic interactions with PBC removal
 + Two offsets as well as chemical equivalence considerations for random charge generation
