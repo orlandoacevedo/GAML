@@ -20,7 +20,7 @@ def parsecmd(args):
     def text2list(value):
         if value is None or len(value) == 0:
             return None
-        value = value.strip()
+        value = ' '.join(value).strip()
         if value[0] != '[': value = '[' + value
         if value[-1] != ']': value = value + ']'
         try:
@@ -52,7 +52,7 @@ def parsecmd(args):
     sub_2.add_argument('-sl','--symmetry_list',nargs='+', help='List contains chemical equivalent \
                         information of the system')
     sub_2.add_argument('-ol','--offset_list',nargs='+',help='Strong & weak offsets, maximum 2 values can be accepted')
-    sub_2.add_argument('--offset_nm',nargs='+',help='Number of attemptions to generate charge falling within input \
+    sub_2.add_argument('--offset_nm',help='Number of attemptions to generate charge falling within input \
                         charge range, used to fit charge constrains, valid only when symmetry_list is defined, \
                         default is 5')
     sub_2.add_argument('-cl','--counter_list',nargs='+',help='Summary of each defined group is zero')
@@ -102,7 +102,7 @@ def parsecmd(args):
     sub_5.add_argument('-sl','--symmetry_list',nargs='+', help='List contains chemical equivalent \
                         information of the system')
     sub_5.add_argument('-ol','--offset_list',nargs='+',help='Strong & weak offsets, maximum 2 values can be accepted')
-    sub_5.add_argument('--offset_nm',nargs='+',help='Number of attemptions to generate charge falling within input \
+    sub_5.add_argument('--offset_nm',help='Number of attemptions to generate charge falling within input \
                         charge range, used to fit charge constrains, valid only when symmetry_list is defined, \
                         default is 5')
     sub_5.add_argument('-cl','--counter_list',nargs='+',help='Summary of each defined group is zero')
@@ -175,18 +175,21 @@ def parsecmd(args):
 
     if 'symmetry_list' in procmd:
         procmd['symmetry_list'] = text2list(procmd['symmetry_list'])
-        log['nice'] = False
-        log['info'] = 'Error: the parameter symmetry_list is wrong'
+        if procmd['symmetry_list'] is False:
+            log['nice'] = False
+            log['info'] = 'Error: the parameter symmetry_list is wrong'
 
     if 'counter_list' in procmd:
         procmd['counter_list'] = text2list(procmd['counter_list'])
-        log['nice'] = False
-        log['info'] = 'Error: the parameter counter_list is wrong'
+        if procmd['counter_list'] is False:
+            log['nice'] = False
+            log['info'] = 'Error: the parameter counter_list is wrong'
 
     if 'offset_list' in procmd:
         procmd['offset_list'] = text2list(procmd['offset_list'])
-        log['nice'] = False
-        log['info'] = 'Error: the parameter offset_list is wrong'
+        if procmd['offset_list'] is False:
+            log['nice'] = False
+            log['info'] = 'Error: the parameter offset_list is wrong'
 
     if ('atomtype_list' in procmd) and (procmd['atomtype_list'] is not None):
         value = procmd['atomtype_list'].replace('"',' ').replace("'",' ')

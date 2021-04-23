@@ -2,7 +2,7 @@
 
 Genetic Algorithm Machine Learning (GAML) software package for automated force field parameterization.
 
-Xiang Zhong and [Orlando Acevedo](http://www.acevedoresearch.com), University of Miami
+Xiang Zhong and [Orlando Acevedo*](https://web.as.miami.edu/chemistrylabs/acevedogroup/research.html), University of Miami
 
 This machine learning based software package automates the creation of force field (FF) parameters for molecular dynamics (MD) or Monte Carlo (MC) simulations. In the current build, atomic charge development is emphasized for solvent simulations using a genetic algorithm crossover/average/mutation method. GAML outputs GROMACS formatted files in the OPLS-AA formalism for use in MD simulations. The FF parameters are validated by default against user-supplied free energies of hydration (ΔGhyd), liquid densities, and heats of vaporization (ΔHvap). However, additional condensed phased physical properties are available (or under development) for training that include: heat capacity, viscosity, self-diffusivity, dipoles, surface tension, and solubility.
 
@@ -23,7 +23,7 @@ git clone git://github.com/orlandoacevedo/GAML.git
 ## Installation
 
 ```
-pip install gaml
+pip[3] install gaml
 ```
 
 Or using source codes
@@ -145,7 +145,7 @@ gaml
     -ol, --offset_list          two offsets to fit charge constrain
     --offset_nm                 loop numbers to for offsets
     --cl, --counter_list        force total charges in this group to zero
-    -tc, --total_charge         default is 1.0
+    -tc, --total_charge         default is 0.0
     -nz, --bool_nozero          force no zero charges was generated, default is True
     -nu, --bool_neutral         force final calculated value scaled from 1 or not, default is True
     -q, --bool_limit            force charge sign, either positive or negative, default is None
@@ -203,7 +203,6 @@ gaml
 
 ## Notes
 
-The most recent version of the software is `GAML 1.00`.
 A test for a 1-butylpyridinium-based ionic liquid can be found under the **sample/** directory.
 
 The OPLS-AA parameters for 86 conventional solvents optimized by GAML can be found under the **Solvents/** directory. Files formatted for GROMACS.
@@ -219,7 +218,7 @@ Zhong, X.; Velez, C.; Acevedo, O. "Partial Charges Optimized by Genetic Algorith
 
 ## About
 
-**Contributing Authors**: Xiang Zhong and Orlando Acevedo*
+**Contributing Authors**: Xiang Zhong and [Orlando Acevedo*](https://web.as.miami.edu/chemistrylabs/acevedogroup/research.html)
 
 **Funding**: Gratitude is expressed to the National Science Foundation.
 

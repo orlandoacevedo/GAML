@@ -1,5 +1,4 @@
 from GAML.functions import file_gen_new, file_size_check
-import itertools
 import random
 
 
@@ -13,7 +12,7 @@ class File_gen_gaussian(object):
     Specially, the [atomtypes] directive of input can be edited to
     identify the real atom type.
 
-    For example, if we has some inputs like;
+    For example, if we have some inputs like;
 
     [ atomtypes ]
     ; type    mass    charge  ptype  sigma(nm)  epsilon(kj/mol)
@@ -434,18 +433,17 @@ class File_gen_gaussian(object):
 
         # determine which residue to choose
         if len(self.mol) == 1:
-            self.reschoose = self.mol[0][1]
+            self.reschoose = self.mol[0][0].lower()
         if self.reschoose != 'all':
             tmp = [res[0].lower() for res in self.mol]
             if self.reschoose not in tmp:
                 print('available residues: ',tmp)
                 raise ValueError('not found')
             ndx = tmp.index(self.reschoose)
-            self.prototlist = self.prototlist[ndx]
-            self.avercorlist = self.avercorlist[ndx]
-            self.atom = self.atom[ndx]
-            self.mol = self.mol[ndx]
-
+            self.prototlist = [self.prototlist[ndx],]
+            self.avercorlist = [self.avercorlist[ndx],]
+            self.atom = [self.atom[ndx],]
+            self.mol = [self.mol[ndx],]
 
         # format: List[List[List[[resnm,molnm]]]]
         #              res  mol      index
@@ -458,7 +456,7 @@ class File_gen_gaussian(object):
                 ls = []
                 # self
                 n = m + 1
-                if n < len(res):
+                while n < len(res):
                     d = [v[tmp]-res[n][tmp] for tmp in range(3)]
                     if d[0]**2 + d[1]**2 + d[2]**2 <= dselrange:
                         ls.append([rnm,n])
@@ -466,7 +464,7 @@ class File_gen_gaussian(object):
 
                 # cross
                 cnt = rnm + 1
-                if cnt < len(self.avercorlist):
+                while cnt < len(self.avercorlist):
                     ces = self.avercorlist[cnt]
                     for y,p in enumerate(ces):
                         d = [v[tmp]-p[tmp] for tmp in range(3)]
@@ -475,233 +473,182 @@ class File_gen_gaussian(object):
                     cnt += 1
                 lp.append(ls)
             ndxlist.append(lp)
-
-        # for each mol in every residue, get all surroundings
-        surlist = []
+        
+        # for each mol in every residue, get all its surroundings
         for i in range(len(ndxlist)):
-            lp = []
-            for j in range(len(ndxlist[i])):
-                ls = []
-                for x,r in enumerate(ndxlist):
-                    # res, once x no less than i, no need going
-                    if x > i:
-                        break
-                    for y,m in enumerate(r):
-                        # mol, once y no less than j, no need going
-                        if y > j:
-                            break
-                        if [i,j] in m:
-                            ls.append([x,y])
+            s = i
+            while s >= 0:
+                for j in range(len(ndxlist[i])):
+                    t = j - 1
+                    while t > 0:
+                        # list in list operation
+                        if [i,j] in ndxlist[s][t]:
+                            ndxlist[i][j].append([s,t])
+                        t -= 1
+                s -= 1
 
-                # itself
-                for t in ndxlist[i][j]: ls.append(t)
-
-                lp.append(ls)
-            surlist.append(lp)
-
-
-        self.chooselist = []
-        # no matter how is the result, try this certain of time
-        for _ in range(10):
-            reflist,ndxlist = self.gen_reflist(surlist,self.gennm+100)
-            newlist = self.gen_chooselist(reflist,ndxlist,surlist)
-
-            # dynamically update
-            bo = False
-            for t in newlist:
-                if t not in self.chooselist:
-                    self.chooselist.append(t)
-
-                if len(self.chooselist) >= self.gennm:
+        ratiolist = self.gen_ratiolist()
+        self.chooselist = self.gen_reflist(ndxlist,ratiolist,self.gennm)
+        
+        if len(self.chooselist) != self.gennm:
+            # no matter how is the result, try this certain of time
+            for _ in range(10):
+                newlist = self.gen_reflist(ndxlist,ratiolist,self.gennm)
+                # number of outputs are not enough
+                bo = False
+                # dynamically update
+                for new in newlist:
                     bo = True
+                    for chk in self.chooselist:
+                        if len(new) == len(chk):
+                            bo = False
+                            for g in new:
+                                if not g in chk:
+                                    bo = True
+                                    break
+                            if not bo:
+                                break
+                    if bo:
+                        self.chooselist.append(new)
+                        bo = True if len(self.chooselist) >= self.gennm else False
+                if bo:
                     break
-            if bo:
-                break
+        
         if len(self.chooselist) == 0:
+            print('Warning: please try to increase select range')
             raise RuntimeError('no generation')
 
 
-    def gen_chooselist(self,reflist,ndxlist,surlist):
-        """generate chooselist
 
-        Args:
-            self.reschoose
-            self.mol
-            reflist     --  will be updated
-            ndxlist
-            surlist
+    def gen_ratiolist(self):
+        """generate minimum choose molnm for each residue
 
-        Return:
-            chooselist  :   List[List[[resnm,molnm], ...]]
+        This list can be used for future updates
         """
-        # This list can be used for future updates
-        # calculate minimum choose molnm for each residue
-        if self.reschoose == 'all' and len(self.mol) > 1:
-            reslist = sorted([tmp[1] for tmp in self.mol])
+        if len(self.mol) > 1:
+            reslist = sorted([i[1] for i in self.mol])
             gcd = reslist[0]
             # calculate greatest common divisor
             for t in reslist[1:]:
                 while gcd != 0:
                     t, gcd = gcd, t%gcd
                 gcd = t
-            bl = [tmp[1]//gcd for tmp in self.mol]
+            ratiolist = [i[1]//gcd for i in self.mol]
         else:
-            bl = [1]
+            ratiolist = [1,]
 
-        chooselist = []
-        for i,ndx in enumerate(ndxlist):
-            wl = []
-            for t in range(len(bl)):
+        return ratiolist
+
+
+
+    def gen_reflist(self,ndxlist,ratiolist,gennm=5,maxtry=1000000):
+        """generate referring list based on surrounding list
+
+        Args:
+            ndxlist: List[List[List[[resnm,molnm]]]]
+                          res  mol   surroundings
+            maxtry  :   int :   maximum number of trying
+
+        Returns:
+            reflist :   List[[resnm,molnm,[molndx]], ...]]
+        """
+        if maxtry <= gennm*10: maxtry = gennm * 2
+
+        # format: dict{dict{int}}
+        #       resnm: molnm: surnm
+        ndxdict = {}
+        for i,res in enumerate(ndxlist):
+            ndxdict[i] = {}
+            for j,mol in enumerate(res):
+                if len(mol) != 0:
+                    ndxdict[i][j] = len(mol)
+
+        reskeyndxlist = [ k for k in ndxdict if len(ndxdict[k]) != 0 ]
+
+        reflist = []
+        trycnt = 0
+        while len(reflist) < gennm:
+            if trycnt > maxtry:
+                #raise RuntimeError('maximum trying is reached')
+                break
+            trycnt += 1
+
+            # first, randomly choose res
+            resnm = random.choice(reskeyndxlist)
+
+            # second, randomly choose mol
+            molnm = random.choice([k for k in ndxdict[resnm]])
+
+            # third, number of molecules
+            tot = ndxdict[resnm][molnm]
+            nm = min(6,tot)
+            ndx = random.sample(range(tot),nm)
+
+            # fourth, get all their circles
+            # make sure every entry is unique
+            ref = ndxlist[resnm][molnm]
+            add = []
+            for t in ndx:
+                sur = ref[t]
+                for s in ndxlist[sur[0]][sur[1]]:
+                    if s not in ref and s not in add:
+                        add.append(s)
+            
+            # fifth, categorize them
+            catlist = []
+            for i in range(len(ratiolist)):
                 ls = []
-                # perfer searching from ndx, identify circle
-                for x in surlist[ndx[0]][ndx[1]]:
-                    if x[0] == t:
-                        ls.append(x)
-                # then others, crossing circle
-                for e in reflist[i]:
-                    for x in surlist[e[0]][e[1]]:
-                        # caution: remove cross-referring
-                        if x[0] == t and x not in ls:
-                            ls.append(x)
-                # no matter how the way box is set
-                # surrounding will always include itself
-                wl.append(ls)
+                for p in ref:
+                    if p[0] == i:
+                        ls.append(p)
+                for p in add:
+                    if p[0] == i:
+                        ls.append(p)
+                catlist.append(ls)
+            
+            # sixth, number of clusters
+            selectlist = [len(i) for i in catlist]
+            if 0 in selectlist: continue
 
-            # first, append itself
-            reflist[i].append(ndx)
-            curlist = reflist[i]
-            # second, calculate all ratios
-            # for a series of values,       a1 : a2 : a3 ...
-            # their best minimum ratio is,  b1 : b2 : b3 ...
-            # calculate n to make,          c1 : c2 : c3 ...
-            # to make, for each i, Each(ci) = Each(bi*n) >= max(ALL(ai))
-            # otherwise, n = n - 1
-            al = []
-            for t in range(len(bl)):
-                tot = 0
-                for x in curlist:
-                    if x[0] == t:
-                        tot += 1
-                al.append(tot)
-
-            n = 1
-            while True:
+            n = random.randrange(1,6)
+            while n >= 1:
                 bo = True
-                for x,v in enumerate(bl):
-                    if v*n - al[x] < 0:
+                for a, num in enumerate(selectlist):
+                    if ratiolist[a]*n > num:
                         bo = False
                         break
                 if bo:
                     break
-                n += 1
+                else:
+                    n -= 1
+            if n <= 0: continue
 
-            if n > 1:
-                while True:
-                    dl = [bl[t]*n - al[t] for t in range(len(bl))]
-                    bo = True
-                    for c,t in enumerate(dl):
-                        if len(wl[c]) < t:
-                            bo = False
+            chooselist = [i*n for i in ratiolist]
+
+            # seventh, choosing
+            # format: 2D: List[[resnm,mol]]
+            new = []
+            for c, pie in enumerate(catlist):
+                for r in random.sample(pie,chooselist[c]):
+                    new.append(r)
+            
+            # finally, make sure no repeats
+            bo = True
+            for chk in reflist:
+                if len(chk) == len(new):
+                    # assume it is not unique
+                    bo = False
+                    for g in new:
+                        if not g in chk:
+                            bo = True
                             break
-                    if bo:
+                    if not bo:
                         break
-                    n = n - 1
-                    if n <= 1:
-                        break
+            if not bo: continue
 
-            # update curlist
-            bool_choose = True
-            dl = [bl[t]*n - al[t] for t in range(len(bl))]
-            for c,t in enumerate(dl):
-                if t < 0:
-                    # remove res--c
-                    for x in range(-t):
-                        bo = False
-                        for y in curlist:
-                            if y[0] == c:
-                                bo = True
-                                break
-                        if bo:
-                            curlist.remove(y)
-                elif t > 0:
-                    # append res--c
-                    if len(wl[c]) >= t:
-                        m = 0
-                        for y in wl[c]:
-                            if y not in curlist:
-                                curlist.append(y)
-                                m += 1
-                            if m == t:
-                                break
-                        if m != t:
-                            bool_choose = False
-                    else:
-                        bool_choose = False
+            reflist.append(new)
 
-            if bool_choose:
-                chooselist.append(curlist)
-
-        return chooselist
-
-
-
-    def gen_reflist(self,surlist,gennm=None,maxtry=None):
-        """generate referring list based on surrounding list
-
-        Args:
-            self.mol:   List[[resname, resnm, atomnm], ...]
-            surlist :   List[List[List[resnm,molnm], ...]]
-                              res  mol   index
-            maxtry  :   int :   maximum number of trying
-
-        Returns:
-            reflist :   List[List[[resnm,molnm], ...]]
-            ndxlist :   List[[resnm, molnm], ...]
-            ownlist :
-        """
-        if gennm is None: gennm = self.gennm
-        if maxtry is None: maxtry = 1000000
-        if maxtry <= gennm: maxtry = 1000000
-        if maxtry <= gennm*10: maxtry = gennm * 2
-
-        # format: List[List[[resnm,molnm], ...]]
-        reflist = []
-        # corresponding surrounding mol
-        ndxlist = []
-        cnt = 0
-        while len(reflist) < gennm:
-            if cnt > maxtry:
-                raise RuntimeError('maximum trying is reached')
-            cnt += 1
-            # first, randomly choose res
-            resnm = random.randrange(len(self.mol))
-
-            # second, randomly choose mol
-            molnm = random.randrange(len(self.mol[resnm]))
-
-            surnm = len(surlist[resnm][molnm])
-            if surnm == 0: continue
-
-            surmol = surlist[resnm][molnm]
-
-            while True:
-                # choose number of molecules
-                nm = random.randrange(6)
-                if nm <= surnm: break
-
-            ls = []
-            while True:
-                t = random.randrange(surnm)
-                if surmol[t] not in ls:
-                    ls.append(surmol[t])
-                    if len(ls) >= nm:
-                        break
-
-            if ls not in reflist:
-                reflist.append(ls)
-                ndxlist.append([resnm,molnm])
-
-        return reflist,ndxlist
+        return reflist
 
 
 
