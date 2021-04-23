@@ -51,7 +51,7 @@ defaults_GAML = {
     'charge_extend_by'  :   0.3,
     'gennm'             :   20,
     'nmround'           :   2,
-    'total_charge'      :   1.0,
+    'total_charge'      :   0.0,
     'bool_neutral'      :   True,
     'bool_nozero'       :   True,
     'neutral'           :   True,

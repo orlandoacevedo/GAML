@@ -178,11 +178,11 @@ class GAML(Charge_gen_scheme):
     def run(self):
         """rewrite parent run method
 
-        However, we can still call it by using super()
+        However, we can still call its parent by using super()
         """
         # potential bug: SHALLOW and DEEP copy
         # to make the following codes work properly
-        # it parent method, super().run() will initialize self.chargepair
+        # its parent method, super().run() will initialize self.chargepair
         # at every time when it is called
         ml = self.ratio_[0]
         av = self.ratio_[1]
@@ -224,12 +224,13 @@ class GAML(Charge_gen_scheme):
 
                 # backup self.gennm
                 totnm = self.gennm
-                # redefine self.gennm
-                self.gennm = int(totnm*ml + 0.5)
-                # generate ML: self.chargepair_ml
-                self.func_ml()
-                # use average method
-                self.gennm = totnm - self.gennm
+                if len(self.symmetry_list) != len(self.reflist)*2:
+                    # redefine self.gennm
+                    self.gennm = int(totnm*ml + 0.5)
+                    # generate ML: self.chargepair_ml
+                    self.func_ml()
+                    # use average method
+                    self.gennm = totnm - self.gennm
                 if self.gennm > 0: self.func_av()
 
                 # reset self.gennm
@@ -242,20 +243,10 @@ class GAML(Charge_gen_scheme):
                 # only charge_path OR both charge_pair and symmetry_list
                 # consider mutation
                 # recalculate ratio
-                if ml == 0 and mu == 0:
-                    ml = 0.5
-                    mu = 0.5
-                else:
-                    if ml == 0:
-                        ml = 1 - mu
-                    elif mu == 0:
-                        mu = 1 - ml
-                    else:
-                        ml = ml / (ml+mu)
-                        mu = 1.0 - ml
-                self.ratio_new = '{:}:0.0:{:}'.format(ml,mu)
+                self.ratio_new = '0.0:0.0:1.0'
 
                 nm_av = 0
+                nm_ml = 0
                 # for future debug
                 self.mlinlist = []
             else:
@@ -275,18 +266,24 @@ class GAML(Charge_gen_scheme):
                         mu = 1.0 - (ml+av)
                     elif av == 0:
                         av = 1.0 - (ml+mu)
-                self.ratio_new = '{:}:{:}:{:}'.format(ml,av,mu)
+
+                if len(self.symmetry_list) != len(self.reflist)*2:
+                    # generate ML: self.chargepair_ml
+                    self.gennm = int(totnm*ml + 0.5)
+                    nm_ml = self.gennm
+                    if nm_ml > 0: self.func_ml()
+                else:
+                    ml = 0.0
+                    nm_ml = 0
 
                 # redefine self.gennm for average
                 self.gennm = int(totnm*av + 0.5)
                 nm_av = self.gennm
                 if self.gennm > 0: self.func_av()
 
+                mu = 1 - ml - av
+                self.ratio_new = '{:}:{:}:{:}'.format(ml,av,mu)
 
-            # generate ML: self.chargepair_ml
-            self.gennm = int(totnm*ml + 0.5)
-            nm_ml = self.gennm
-            if nm_ml > 0: self.func_ml()
 
             # generate nor_charge_list: self.chargepair_nor
             # redefine self.gennm
@@ -487,13 +484,7 @@ class GAML(Charge_gen_scheme):
         lth = len(self.mlinlist[0])
         while len(self.chargepair_av) < self.gennm:
             nm = random.randrange(2,6)
-            reflist = []
-            while True:
-                i = random.randrange(len(self.mlinlist))
-                if i not in reflist:
-                    reflist.append(i)
-                if len(reflist) >= nm:
-                    break
+            reflist = random.sample(range(len(self.mlinlist)),k=nm)
 
             averlist = []
             for i in range(lth):
