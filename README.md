@@ -204,23 +204,25 @@ gaml
 ## Notes
 
 The most recent version of the software is `GAML 1.00`.
-A test for a 1-butylpyridinium-based ionic liquid can be found under the **sample/** directory
+A test for a 1-butylpyridinium-based ionic liquid can be found under the **sample/** directory.
+
+The OPLS-AA parameters for 86 conventional solvents optimized by GAML can be found under the **Solvents/** directory. Files formatted for GROMACS.
+
 Some features worth mentioning:
 + Customized selection range for Coulombic interactions with PBC removal
-+ Mode number starting of partial subset chosen in total dataset
-+ Two offsets as well as chemical equivalence considerations for random charge generations
++ Two offsets as well as chemical equivalence considerations for random charge generation
 + The crossover/average/mutation method
 
 ## References
 
-Zhong, X.; Velez, C.; Acevedo, O. "Partial Charges Optimized by Genetic Algorithms for Deep Eutectic Solvent Simulations." (in preparation for submission)
+Zhong, X.; Velez, C.; Acevedo, O. "Partial Charges Optimized by Genetic Algorithms for Deep Eutectic Solvent Simulations" *J. Chem. Theory Comput.*, **2021**, *17*, (in press). [doi:10.1021/acs.jctc.1c00047](http://pubs.acs.org/doi/abs/10.1021/acs.jctc.1c00047)
 
 ## About
 
 **Contributing Authors**: Xiang Zhong and Orlando Acevedo*
 
-**Funding**: Gratitude is expressed to the National Science Foundation for funding the project.
+**Funding**: Gratitude is expressed to the National Science Foundation.
 
 **Software License**:
 GAML. Genetic Algorithm Machine Learning (GAML) software package.
-Copyright (C) 2020  Orlando Acevedo
+Copyright (C) 2021  Orlando Acevedo
